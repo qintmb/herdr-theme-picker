@@ -1,2 +1,4 @@
 *.bak-*
 .DS_Store
+docs/superpowers/
+.superpowers/
