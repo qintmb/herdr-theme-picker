@@ -269,19 +269,4 @@ manifest). Your `[theme.custom]` block and its backups remain in
 
 MIT — see [LICENSE](LICENSE).
 
-## For maintainers — releasing an update
-
-Herdr detects a new release by the manifest `version`. To ship changes:
-
-1. Make and commit your changes on `main` (Herdr resolves the default branch).
-2. **Bump `version`** in `herdr-plugin.toml` (semver) — if the version does
-   not increase, Herdr may not treat it as an update.
-3. Note the change in [CHANGELOG.md](CHANGELOG.md).
-4. Push to `main`; optionally tag the release (`git tag v0.2.0 && git push --tags`).
-
-No `[[build]]` step is required — the plugin is pure bash, so nothing can fail
-on a user's machine at install time.
-
-## Tags
-
 `herdr` · `herdr-plugin`
