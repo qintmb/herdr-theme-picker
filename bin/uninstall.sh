@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
+# Remove the plugin from Herdr (mirror of install.sh).
 _here="$(dirname "${BASH_SOURCE[0]}")"
-source "$_here/install.sh"  # pakai remove_keybind + CONFIG_PATH
-main_uninstall() {
-  [ -f "$CONFIG_PATH" ] && remove_keybind "$CONFIG_PATH"
+source "$_here/lib.sh"
+
+main() {
+  command -v herdr >/dev/null || die "herdr tidak ditemukan di PATH."
   herdr plugin unlink herdr-theme-picker 2>/dev/null || true
   herdr server reload-config >/dev/null 2>&1 || true
-  echo "Dicopot."
+  echo "Unlinked."
 }
-main_uninstall "$@"
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then main "$@"; fi

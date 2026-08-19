@@ -18,3 +18,9 @@ id = "open"
 title = "Theme picker: open"
 contexts = ["workspace"]
 command = ["bash", "-c", "exec \"${HERDR_BIN_PATH:-herdr}\" plugin pane open --plugin herdr-theme-picker --entrypoint picker --placement popup --focus"]
+
+[[keys.command]]
+key = "prefix+t"
+type = "plugin_action"
+command = "herdr-theme-picker.open"
+description = "pick a color theme"

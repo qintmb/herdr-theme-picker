@@ -1,94 +1,94 @@
 # herdr-theme-picker
 
-Pilih theme warna apa pun dari [terminalcolors.com](https://terminalcolors.com)
-dan terapkan ke UI [Herdr](https://herdr.dev) — lewat satu keybind `prefix+t`.
+Pick any color theme from [terminalcolors.com](https://terminalcolors.com)
+and apply it to your [Herdr](https://herdr.dev) UI — with a single keybind,
+`prefix+t`.
 
-Herdr hanya menyediakan segelintir theme bawaan (`catppuccin`, `tokyo-night`,
-`gruvbox`, `solarized`, `terminal`, dll). Plugin ini membuka ratusan palette
-dari terminalcolors.com: pilih dari popup, warnanya langsung dipetakan ke
-`[theme.custom]` di `config.toml` dan Herdr reload otomatis.
+Herdr ships only a handful of built-in themes (`catppuccin`, `tokyo-night`,
+`gruvbox`, `solarized`, `terminal`, …). This plugin unlocks hundreds of
+palettes from terminalcolors.com: pick one from a popup, and its colors are
+mapped into `[theme.custom]` in your `config.toml` and reloaded automatically.
 
-> **Cakupan:** plugin mewarnai **UI chrome Herdr** (panel, sidebar, aksen).
-> Plugin **tidak** mengubah warna sel terminal (ANSI 16-color) — itu diatur
-> oleh emulator terminalmu (Ghostty, iTerm, dll), bukan Herdr.
-
----
-
-## Fitur
-
-- **`prefix+t`** → popup fzf dengan preview swatch warna truecolor.
-- **19 theme populer** ter-bundle offline (Dracula, Gruvbox, Nord, Tokyo
-  Night, Catppuccin, Solarized, One Dark, Everforest, Rosé Pine, Kanagawa,
-  Ayu, GitHub, …).
-- **Live-fetch** theme lain dari terminalcolors.com saat dipilih (butuh
-  internet), di-cache lokal.
-- **Backup otomatis** `config.toml` sebelum menulis.
-- **Idempoten & reversible** — copot bersih lewat `uninstall.sh`.
+> **Scope:** the plugin recolors **Herdr's UI chrome** (panels, sidebar,
+> accents) through `[theme.custom]`. It does **not** change the terminal cell
+> colors (the 16 ANSI colors) — those are controlled by your terminal
+> emulator (Ghostty, iTerm, …), not by Herdr.
 
 ---
 
-## Kompatibilitas
+## Features
+
+- **`prefix+t`** → an fzf popup with a live truecolor swatch preview.
+- **19 popular themes bundled offline** (Dracula, Gruvbox, Nord, Tokyo Night,
+  Catppuccin, Solarized, One Dark, Everforest, Rosé Pine, Kanagawa, Ayu,
+  GitHub, …).
+- **Live-fetch** any other theme from terminalcolors.com on selection
+  (needs internet), cached locally.
+- **Automatic backup** of `config.toml` before writing.
+- **Idempotent & reversible.**
+
+---
+
+## Compatibility
 
 | | |
 |---|---|
 | Herdr | ≥ 0.8.0 |
 | OS | macOS, Linux |
-| Dependency | `bash`, `curl`, [`fzf`](https://github.com/junegunn/fzf) |
+| Dependencies | `bash`, `curl`, [`fzf`](https://github.com/junegunn/fzf) |
 
-`fzf` biasanya sudah ada bila kamu pakai plugin Herdr lain (file-picker,
-termscope). Jika belum: `brew install fzf` (macOS) atau paket distro-mu.
+`fzf` is usually already present if you use other Herdr plugins (file-picker,
+termscope). If not: `brew install fzf` (macOS) or your distro's package.
 
 ---
 
 ## Install
 
-### A. Via installer (disarankan)
+### From GitHub (recommended)
+
+Herdr installs plugins directly from a repository:
 
 ```bash
-git clone https://github.com/qintmb/herder-theme-picker.git
-cd herder-theme-picker
-bash bin/install.sh
+herdr plugin install qintmb/herdr-theme-picker
 ```
 
-Installer akan:
-1. `herdr plugin link` folder ini ke Herdr.
-2. Menambah keybind `prefix+t` ke `config.toml` (backup dulu, idempoten).
-3. `herdr server reload-config`.
+Herdr shows an install preview for review before proceeding (use `--yes` for
+non-interactive install). The `prefix+t` keybind is registered by the plugin
+manifest — no manual `config.toml` editing required.
 
-### B. Manual
+Then reload the running server:
 
 ```bash
-git clone https://github.com/qintmb/herder-theme-picker.git ~/.config/herdr/plugins/local/herdr-theme-picker
-herdr plugin link ~/.config/herdr/plugins/local/herdr-theme-picker
+herdr server reload-config
 ```
 
-Lalu tambah keybind ke `~/.config/herdr/config.toml`:
+### Local checkout (for development)
 
-```toml
-[[keys.command]]
-key = "prefix+t"
-type = "plugin_action"
-command = "herdr-theme-picker.open"
-description = "pick a color theme"
+```bash
+git clone https://github.com/qintmb/herdr-theme-picker.git
+cd herdr-theme-picker
+herdr plugin link "$PWD"        # or: bash bin/install.sh
+herdr server reload-config
 ```
 
-Reload: `herdr server reload-config`.
+`bin/install.sh` is a thin convenience wrapper around `herdr plugin link` +
+`reload-config` for a local checkout.
 
 ---
 
-## Pakai
+## Usage
 
-Tekan **`prefix+t`** (prefix default Herdr = `cmd+b`, jadi `cmd+b` lalu `t`).
+Press **`prefix+t`** (Herdr's default prefix is `cmd+b`, so `cmd+b` then `t`).
 
-- Popup fzf terbuka. Ketik untuk memfilter, panah untuk navigasi.
-- Panel kanan menampilkan preview warna theme.
-- **Enter** → theme diterapkan, Herdr reload otomatis.
-- **Esc** → batal.
+- The fzf popup opens. Type to filter, arrows to navigate.
+- The right pane shows a color preview of the highlighted theme.
+- **Enter** → the theme is applied and Herdr reloads automatically.
+- **Esc** → cancel.
 
-Theme bertanda ada di `themes/index.txt`. Yang ter-bundle offline berlaku
-tanpa internet; sisanya di-fetch saat dipilih.
+Available themes are listed in `themes/index.txt`. Bundled ones work offline;
+the rest are fetched on selection.
 
-Menjalankan tanpa keybind:
+You can also trigger it without the keybind:
 
 ```bash
 herdr plugin pane open --plugin herdr-theme-picker --entrypoint picker --placement popup --focus
@@ -96,25 +96,25 @@ herdr plugin pane open --plugin herdr-theme-picker --entrypoint picker --placeme
 
 ---
 
-## Cara kerja
+## How it works
 
 ```
 prefix+t → picker.sh (fzf)
-             │  pilih slug
+             │  pick a slug
              ▼
           apply.sh <slug>
-             │  1. resolve_palette  → themes/<slug>  atau  fetch terminalcolors.com (cache)
-             │  2. palette_to_tokens → 16 token [theme.custom]
-             │  3. tulis config.toml (backup config.toml.bak-YYYYMMDD)
+             │  1. resolve_palette   → themes/<slug>  or  fetch terminalcolors.com (cached)
+             │  2. palette_to_tokens → 16 [theme.custom] tokens
+             │  3. write config.toml (backup: config.toml.bak-YYYYMMDD)
              │  4. herdr server reload-config
              ▼
-          UI Herdr berubah
+          Herdr UI updates
 ```
 
-Palette dibaca dalam **format ghostty** (`background`, `foreground`,
-`palette N=#hex`), lalu dipetakan ke token UI Herdr:
+Palettes are read in **ghostty format** (`background`, `foreground`,
+`palette N=#hex`), then mapped to Herdr's UI tokens:
 
-| token Herdr | sumber palette | | token Herdr | sumber palette |
+| Herdr token | palette source | | Herdr token | palette source |
 |---|---|---|---|---|
 | `panel_bg` | `background` | | `text` | `foreground` |
 | `surface0` | `palette 0` | | `subtext0` | `palette 7` |
@@ -127,11 +127,45 @@ Palette dibaca dalam **format ghostty** (`background`, `foreground`,
 
 ---
 
-## Modifikasi
+## Manifest
 
-### Menambah theme offline
+`herdr-plugin.toml` declares everything Herdr needs — the pane, the action,
+and the keybind:
 
-Simpan file format-ghostty di `themes/<slug>` lalu daftarkan slug-nya ke
+```toml
+id = "herdr-theme-picker"
+name = "Theme Picker"
+version = "0.1.0"
+min_herdr_version = "0.8.0"
+platforms = ["linux", "macos"]
+
+[[panes]]
+id = "picker"
+placement = "popup"
+command = ["bash", "-c", "exec bash \"$HERDR_PLUGIN_ROOT/bin/picker.sh\""]
+
+[[actions]]
+id = "open"
+contexts = ["workspace"]
+command = ["bash", "-c", "exec \"${HERDR_BIN_PATH:-herdr}\" plugin pane open --plugin herdr-theme-picker --entrypoint picker --placement popup --focus"]
+
+[[keys.command]]
+key = "prefix+t"
+type = "plugin_action"
+command = "herdr-theme-picker.open"
+description = "pick a color theme"
+```
+
+Herdr does not run commands through a shell, so each `command` is an explicit
+argv array. Plugins reach Herdr via `HERDR_BIN_PATH` (or the socket API).
+
+---
+
+## Customization
+
+### Add an offline theme
+
+Save a ghostty-format file at `themes/<slug>`, then register the slug in
 `themes/index.txt`:
 
 ```
@@ -145,52 +179,56 @@ palette = 1=#f38ba8
 palette = 15=#a6adc8
 ```
 
-Cara cepat mengunduh dari terminalcolors.com:
+Quick download from terminalcolors.com:
 
 ```bash
 curl -fsSL "https://terminalcolors.com/downloads/ghostty/<slug>" -o "themes/<slug>"
 echo "<slug>" >> themes/index.txt
 ```
 
-Slug hanya boleh `[a-z0-9-]` (divalidasi; mencegah path/URL injection).
+Slugs may only contain `[a-z0-9-]` (validated to prevent path/URL injection).
 
-### Mengubah pemetaan warna
+### Change the color mapping
 
-Edit `bin/map.sh` → fungsi `palette_to_tokens`. Setiap baris `printf` memetakan
-satu token Herdr ke sumber palette. `bin/lib.sh` menyediakan `darken_hex <#hex>
-<persen>` untuk turunan warna.
+Edit `bin/map.sh` → `palette_to_tokens`. Each `printf` line maps one Herdr
+token to a palette source. `bin/lib.sh` provides `darken_hex <#hex> <percent>`
+for derived shades.
 
-### Mengubah keybind
+### Change the keybind
 
-Ganti `key = "prefix+t"` di `config.toml` ke kombinasi lain (mis. `prefix+shift+t`).
+Edit `key = "prefix+t"` in `herdr-plugin.toml` to another combination
+(e.g. `prefix+shift+t`), then `herdr server reload-config`.
 
 ---
 
-## Uji
+## Test
 
 ```bash
 bash tests/run.sh
 ```
 
-Menjalankan self-check berbasis assert (tanpa framework): pemetaan palette,
-`darken_hex`, validasi slug, penulisan `[theme.custom]` idempoten, patch
-keybind, dan render swatch.
+Runs assert-based self-checks (no framework): palette mapping, `darken_hex`,
+slug validation, idempotent `[theme.custom]` writing, and swatch rendering.
 
 ---
 
-## Copot
+## Uninstall
 
 ```bash
-bash bin/uninstall.sh
+herdr plugin uninstall herdr-theme-picker     # installed from GitHub
+herdr plugin unlink    herdr-theme-picker     # linked local checkout (or: bash bin/uninstall.sh)
+herdr server reload-config
 ```
 
-Menghapus keybind dari `config.toml`, `herdr plugin unlink`, dan reload.
+Removing the plugin drops the `prefix+t` keybind with it (it lives in the
+manifest). Your `[theme.custom]` block and its backups remain in
+`config.toml` until you edit them out.
 
 ---
 
-## Lisensi
+## License
 
-MIT.
+MIT — see [LICENSE](LICENSE).
 
 ## Tags
 
