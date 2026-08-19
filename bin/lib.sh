@@ -2,6 +2,9 @@
 # Fungsi bersama untuk herdr-theme-picker.
 CONFIG_PATH="${HERDR_CONFIG_PATH:-$HOME/.config/herdr/config.toml}"
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/herdr-theme-picker"
+# Herdr provides HERDR_PLUGIN_STATE_DIR; fall back to cache dir when run standalone.
+STATE_DIR="${HERDR_PLUGIN_STATE_DIR:-$CACHE_DIR}"
+APPLIED_FILE="$STATE_DIR/applied"
 
 die() { printf '%s\n' "$*" >&2; exit 1; }
 

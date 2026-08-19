@@ -110,9 +110,13 @@ and `herdr server reload-config`.
 Press **`prefix+t`** (Herdr's default prefix is `cmd+b`, so `cmd+b` then `t`).
 
 - The fzf popup opens. Type to filter, arrows to navigate.
-- The right pane shows a color preview of the highlighted theme.
-- **Enter** → the theme is applied and Herdr reloads automatically.
+- The right pane previews the theme applied to a mock Herdr UI — workspace
+  header, agent panes with state colors, tab bar, and pane body.
+- **Enter** → the theme is applied, Herdr reloads, and the popup closes.
 - **Esc** → cancel.
+
+The currently applied theme is marked with `✓` and the cursor lands on it when
+you reopen the picker.
 
 Available themes are listed in `themes/index.txt`. Bundled ones work offline;
 the rest are fetched on selection.

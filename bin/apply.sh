@@ -22,8 +22,8 @@ write_custom_block() {
 
 main() {
   local slug="${1:-}"
-  [ -n "$slug" ] || die "pemakaian: apply.sh <slug>"
-  [ -f "$CONFIG_PATH" ] || die "config tak ditemukan: $CONFIG_PATH"
+  [ -n "$slug" ] || die "usage: apply.sh <slug>"
+  [ -f "$CONFIG_PATH" ] || die "config not found: $CONFIG_PATH"
 
   local palette tokens
   palette="$(resolve_palette "$slug")"
@@ -35,10 +35,14 @@ main() {
 
   write_custom_block "$CONFIG_PATH" "$tokens"
 
+  # Record applied theme so the picker can mark it next time.
+  mkdir -p "$STATE_DIR"
+  printf '%s\n' "$slug" > "$APPLIED_FILE"
+
   if herdr server reload-config >/dev/null 2>&1; then
-    printf 'Theme "%s" diterapkan.\n' "$slug"
+    printf 'Applied theme "%s".\n' "$slug"
   else
-    printf 'Theme "%s" ditulis, tapi reload gagal. Coba: herdr server reload-config\n' "$slug" >&2
+    printf 'Theme "%s" written, but reload failed. Try: herdr server reload-config\n' "$slug" >&2
   fi
 }
 
