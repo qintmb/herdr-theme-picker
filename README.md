@@ -1,5 +1,9 @@
 # herdr-theme-picker
 
+<p align="center">
+  <img src="preview.png" alt="herdr-theme-picker preview — fzf popup with theme swatches" width="80%">
+</p>
+
 Pick any color theme from [terminalcolors.com](https://terminalcolors.com)
 and apply it to your [Herdr](https://herdr.dev) UI — with a single keybind,
 `prefix+t`.
