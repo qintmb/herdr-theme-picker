@@ -24,7 +24,7 @@ remove_keybind() {
     /^\[\[keys\.command\]\]/ { buf=$0"\n"; inblk=1; hit=0; next }
     inblk {
       buf=buf $0 "\n"
-      if ($0 ~ /herdr-theme-picker\.open/) hit=1
+      if ($0 ~ /^command *= *"herdr-theme-picker\.open"/) hit=1
       if ($0 ~ /^$/ || $0 ~ /^\[/) { if (!hit) printf "%s", buf; inblk=0; buf=""; if ($0 ~ /^\[/) print }
       next
     }
