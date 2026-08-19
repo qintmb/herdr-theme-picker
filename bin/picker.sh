@@ -8,58 +8,88 @@ PLUGIN_ROOT="${HERDR_PLUGIN_ROOT:-$(cd "$_here/.." && pwd)}"
 # "#rrggbb" -> "r;g;b" (for ANSI truecolor).
 _rgb() { local h="${1#\#}"; printf '%d;%d;%d' "$((16#${h:0:2}))" "$((16#${h:2:2}))" "$((16#${h:4:2}))"; }
 
-# paint <bg#hex> <fg#hex> <text>  -> text on colored cell, reset after.
-_paint() { printf '\033[48;2;%s;38;2;%sm%s\033[0m' "$(_rgb "$1")" "$(_rgb "$2")" "$3"; }
+# _cell <bg#hex> <fg#hex> <text> : text on a colored cell (no newline).
+_cell() { printf '\033[48;2;%s;38;2;%sm%s\033[0m' "$(_rgb "$1")" "$(_rgb "$2")" "$3"; }
+# _fg <fg#hex> <text> : colored fg only (transparent bg).
+_fg() { printf '\033[38;2;%sm%s\033[0m' "$(_rgb "$1")" "$2"; }
+# pad text to width n (plain, before coloring)
+_padr() { printf '%-*.*s' "$1" "$1" "$2"; }
 
-# swatch <slug>: mock of Herdr UI (sidebar/space, agent panes, tabs) in the
-# theme's colors. Used as the fzf --preview. Fetches on demand.
+# swatch <slug>: full mock of the Herdr layout in the theme's colors —
+# left "spaces" sidebar, a two-pane workspace (active pane highlighted),
+# tab bar, and an agent pane. Used as the fzf --preview; fetches on demand.
 swatch() {
   local slug="$1" p tok
   p="$(resolve_palette "$slug" 2>/dev/null)" || { echo "(cannot load $slug — needs internet)"; return 0; }
   tok="$(palette_to_tokens "$p")"
-  # tok is "token=#hex" lines; look one up (bash 3.2, no assoc arrays).
   tget() { printf '%s\n' "$tok" | grep "^$1=" | cut -d= -f2-; }
   local panel_bg text accent blue green red yellow mauve teal peach
-  local subtext0 surface0 surface1 surface_dim overlay0
+  local subtext0 surface0 surface1 surface_dim overlay0 overlay1
   panel_bg="$(tget panel_bg)"; text="$(tget text)"; accent="$(tget accent)"
   blue="$(tget blue)"; green="$(tget green)"; red="$(tget red)"
   yellow="$(tget yellow)"; mauve="$(tget mauve)"; teal="$(tget teal)"
   peach="$(tget peach)"; subtext0="$(tget subtext0)"
   surface0="$(tget surface0)"; surface1="$(tget surface1)"
   surface_dim="$(tget surface_dim)"; overlay0="$(tget overlay0)"
+  overlay1="$(tget overlay1)"
 
-  local w=30
-  local pad; pad="$(printf '%*s' "$w" '')"
+  local SB=13   # sidebar width
+  local PA=13   # left (active) pane width
+  local PB=13   # right pane width
+
+  # Column helpers bound to this theme's colors.
+  # sidebar row: bg=surface0, fg passed
+  sb()  { _cell "$surface0" "$1" "$(_padr "$SB" "$2")"; }
+  # active pane row: bg=panel_bg (border accent shown via left bar)
+  pane(){ local bg="$1" fg="$2" w="$3" t="$4"; _cell "$bg" "$fg" "$(_padr "$w" "$t")"; }
 
   printf '  %s\n\n' "$slug"
 
-  # Sidebar / space header
-  _paint "$panel_bg" "$accent" "$(printf ' ■ Workspace%*s' $((w-12)) '')"; printf '\n'
-  # Agent panes: dot = state color, name in text, status in subtext
-  _paint "$surface0" "$blue"     "$(printf ' ● claude   %*s' $((w-12)) 'working')"; printf '\n'
-  _paint "$panel_bg" "$green"    "$(printf ' ● codex    %*s' $((w-12)) 'done')"; printf '\n'
-  _paint "$surface0" "$red"      "$(printf ' ● hermes   %*s' $((w-12)) 'blocked')"; printf '\n'
-  _paint "$panel_bg" "$subtext0" "$(printf ' ● opencode %*s' $((w-12)) 'idle')"; printf '\n'
-
-  # Divider
-  _paint "$surface_dim" "$overlay0" "$pad"; printf '\n'
-
-  # Tab bar: active tab uses accent bg, inactive use surface1
-  printf ' '
-  _paint "$accent"   "$panel_bg" ' main '
-  _paint "$surface1" "$subtext0" ' logs '
-  _paint "$surface1" "$subtext0" ' test '
+  # ── Tab bar (spans the workspace area) ────────────────────────────
+  printf '%s' "$(sb "$subtext0" ' spaces')"
+  _cell "$accent"   "$panel_bg" ' WORKSPACE '
+  _cell "$surface1" "$subtext0" ' Files '
   printf '\n'
 
-  # Pane body: text + accent samples
-  _paint "$panel_bg" "$text"   "$(printf ' The quick brown fox %*s' $((w-20)) '')"; printf '\n'
-  _paint "$panel_bg" "$accent" "$(printf ' accent link  %*s' $((w-13)) '')"; printf '\n'
+  # ── Row 1: sidebar space header + two pane title bars ─────────────
+  printf '%s' "$(sb "$accent" ' ■ AGENT')"
+  _cell "$surface1" "$text"     " ~/proj  pi "
+  _cell "$panel_bg" "$overlay0" " ~/proj     "
+  printf '\n'
 
-  # ANSI palette strip
+  # ── Row 2: cpu/ram + pane bodies (active pane = brighter bg) ──────
+  printf '%s' "$(sb "$subtext0" ' cpu·ram 3%')"
+  pane "$panel_bg" "$text"    "$PA" ' fox jumps'
+  pane "$surface_dim" "$overlay0" "$PB" ' idle'
+  printf '\n'
+
+  # ── Row 3: now-playing + accent line in active pane ───────────────
+  printf '%s' "$(sb "$teal" ' ▶ Runaway')"
+  pane "$panel_bg" "$accent"  "$PA" ' accent >'
+  pane "$surface_dim" "$overlay1" "$PB" ''
+  printf '\n'
+
+  # ── Row 4: second space (dim) + pane status colors ────────────────
+  printf '%s' "$(sb "$overlay0" ' · LINUX')"
+  pane "$panel_bg" "$green"   "$PA" ' ✓ done'
+  pane "$surface_dim" "$red"      "$PB" ' ✗ err'
+  printf '\n'
+
+  # ── Divider ───────────────────────────────────────────────────────
+  _cell "$surface_dim" "$overlay0" "$(_padr $((SB+PA+PB)) '')"; printf '\n'
+
+  # ── Agent pane (bottom): state dots ───────────────────────────────
+  _cell "$panel_bg" "$subtext0" ' AGENTS  '
+  _fg   "$blue"  '● '; _fg "$green" '● '; _fg "$red" '● '; _fg "$overlay0" '● '
   printf '\n '
+  _fg "$blue" 'claude '; _fg "$green" 'codex '; _fg "$red" 'hermes '; _fg "$overlay0" 'idle'
+  printf '\n\n'
+
+  # ── ANSI palette strip ────────────────────────────────────────────
+  printf ' '
   local col
   for col in "$red" "$green" "$yellow" "$blue" "$mauve" "$teal" "$peach" "$accent"; do
-    _paint "$col" "$panel_bg" '  '
+    _cell "$col" "$panel_bg" '  '
   done
   printf '\n'
 }
@@ -76,32 +106,26 @@ main() {
   local applied=""
   [ -f "$APPLIED_FILE" ] && applied="$(head -1 "$APPLIED_FILE" 2>/dev/null)"
 
-  # Build the list; prefix the active theme with a check mark. fzf shows the
-  # marker but we strip it back to the bare slug on selection.
-  local list; list="$(cat "$PLUGIN_ROOT/themes/index.txt")"
-  local display
-  display="$(printf '%s\n' "$list" | while IFS= read -r slug; do
-    [ -z "$slug" ] && continue
-    if [ "$slug" = "$applied" ]; then printf '✓ %s\n' "$slug"; else printf '  %s\n' "$slug"; fi
-  done)"
+  # Build the list. The applied theme is marked with ✓ and floated to the top
+  # so the cursor lands on it — WITHOUT filtering the rest out (no --query).
+  local list; list="$(grep -v '^[[:space:]]*$' "$PLUGIN_ROOT/themes/index.txt")"
+  local display=""
+  if [ -n "$applied" ] && printf '%s\n' "$list" | grep -qx "$applied"; then
+    display="$(printf '✓ %s\n' "$applied")"
+    display="$display"$'\n'"$(printf '%s\n' "$list" | grep -vx "$applied" | sed 's/^/  /')"
+  else
+    display="$(printf '%s\n' "$list" | sed 's/^/  /')"
+  fi
 
   local sel
-  if [ -n "$applied" ]; then
-    sel="$(printf '%s\n' "$display" | fzf \
-      --prompt="theme> " \
-      --header="↑↓ browse · enter apply · esc cancel" \
-      --info=inline --height=100% \
-      --query "$applied" \
-      --preview="bash '$PLUGIN_ROOT/bin/picker.sh' --preview {}" \
-      --preview-window=right,60%,border-left)" || exit 0
-  else
-    sel="$(printf '%s\n' "$display" | fzf \
-      --prompt="theme> " \
-      --header="↑↓ browse · enter apply · esc cancel" \
-      --info=inline --height=100% \
-      --preview="bash '$PLUGIN_ROOT/bin/picker.sh' --preview {}" \
-      --preview-window=right,60%,border-left)" || exit 0
-  fi
+  sel="$(printf '%s\n' "$display" | fzf \
+    --layout=reverse \
+    --prompt="Search themes: " \
+    --header="type to search · ↑↓ browse · enter apply · esc cancel" \
+    --info=inline \
+    --height=100% \
+    --preview="bash '$PLUGIN_ROOT/bin/picker.sh' --preview {}" \
+    --preview-window=right,62%,border-left)" || exit 0
 
   # Strip the "✓ " / "  " prefix back to the bare slug.
   sel="${sel#✓ }"; sel="${sel#  }"

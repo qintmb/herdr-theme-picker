@@ -11,8 +11,8 @@ printf '%s' "$out" | grep -q $'\033\[48;2;' || { echo "FAIL no truecolor bg"; fa
 # dracula panel_bg #282a36 -> rgb 40;42;54 rendered as a cell bg
 printf '%s' "$out" | grep -q '48;2;40;42;54' || { echo "FAIL panel_bg rgb missing"; fail=1; }
 # UI mock labels present
-printf '%s' "$out" | grep -q 'Workspace' || { echo "FAIL no workspace row"; fail=1; }
-printf '%s' "$out" | grep -q 'claude' || { echo "FAIL no agent row"; fail=1; }
-printf '%s' "$out" | grep -q 'main' || { echo "FAIL no tab row"; fail=1; }
+printf '%s' "$out" | grep -q 'WORKSPACE' || { echo "FAIL no workspace row"; fail=1; }
+printf '%s' "$out" | grep -q 'AGENT' || { echo "FAIL no agent row"; fail=1; }
+printf '%s' "$out" | grep -q 'claude' || { echo "FAIL no agent name"; fail=1; }
 
 [ "$fail" = 0 ] && echo "PASS test_preview" || exit 1
