@@ -62,7 +62,14 @@ Then reload the running server:
 herdr server reload-config
 ```
 
-### Local checkout (for development)
+**This is the only path that receives updates.** Herdr tracks the plugin's
+source repo and compares the manifest `version`, so `herdr plugin install`
+is how you get future fixes and new themes (see [Updating](#updating)).
+
+### Local checkout (development only)
+
+Use this only when hacking on the plugin itself. A linked local checkout is
+**not** tracked for updates — pull changes with `git` yourself.
 
 ```bash
 git clone https://github.com/qintmb/herdr-theme-picker.git
@@ -73,6 +80,28 @@ herdr server reload-config
 
 `bin/install.sh` is a thin convenience wrapper around `herdr plugin link` +
 `reload-config` for a local checkout.
+
+---
+
+## Updating
+
+If you installed from GitHub, reinstall to pull the latest release:
+
+```bash
+herdr plugin install qintmb/herdr-theme-picker
+herdr server reload-config
+```
+
+Herdr resolves the repo's default branch (`main`) and detects a new release
+by a bumped manifest `version`. To pin a specific commit, tag, or branch,
+pass `--ref`:
+
+```bash
+herdr plugin install qintmb/herdr-theme-picker --ref v0.1.0
+```
+
+A local linked checkout does not auto-update — `git pull` in that directory
+and `herdr server reload-config`.
 
 ---
 
@@ -229,6 +258,19 @@ manifest). Your `[theme.custom]` block and its backups remain in
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+## For maintainers — releasing an update
+
+Herdr detects a new release by the manifest `version`. To ship changes:
+
+1. Make and commit your changes on `main` (Herdr resolves the default branch).
+2. **Bump `version`** in `herdr-plugin.toml` (semver) — if the version does
+   not increase, Herdr may not treat it as an update.
+3. Note the change in [CHANGELOG.md](CHANGELOG.md).
+4. Push to `main`; optionally tag the release (`git tag v0.2.0 && git push --tags`).
+
+No `[[build]]` step is required — the plugin is pure bash, so nothing can fail
+on a user's machine at install time.
 
 ## Tags
 
