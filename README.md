@@ -124,6 +124,19 @@ Press **`prefix+t`** (Herdr's default prefix is `cmd+b`, so `cmd+b` then `t`).
 The currently applied theme is marked with `✓` and floated to the top of the
 list; the rest stay browsable so you can switch freely.
 
+### Add your own theme (from inside the picker)
+
+A `+ Add new theme…` row is pinned at the bottom of the list. Press **Tab**
+(from anywhere) or **Enter** on that row to:
+
+1. Open your `$EDITOR` with a ghostty-format template.
+2. Paste a palette (e.g. terminalcolors.com → Download → **Ghostty**), save, and close.
+3. Type a name — it's slugified, validated, saved, appended to the list, and applied immediately.
+
+User-added themes are stored in `HERDR_PLUGIN_STATE_DIR/themes` (with their own
+`index.txt`), so plugin updates never overwrite them. They appear in the list
+marked `★`.
+
 Available themes are listed in `themes/index.txt`. Bundled ones work offline;
 the rest are fetched on selection.
 

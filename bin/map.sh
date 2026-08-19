@@ -15,7 +15,7 @@ _pget() {
 palette_to_tokens() {
   local f="$1" bg fg p0 p1 p2 p3 p4 p5 p6 p7 p8 p9
   p0="$(_pget "$f" p0)"
-  [ -n "$p0" ] || die "bukan palette ghostty valid: $f"
+  [ -n "$p0" ] || die "not a valid ghostty palette: $f"
   bg="$(_pget "$f" background)"; fg="$(_pget "$f" foreground)"
   p1="$(_pget "$f" p1)"; p2="$(_pget "$f" p2)"; p3="$(_pget "$f" p3)"
   p4="$(_pget "$f" p4)"; p5="$(_pget "$f" p5)"; p6="$(_pget "$f" p6)"

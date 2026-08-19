@@ -5,6 +5,10 @@ CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/herdr-theme-picker"
 # Herdr provides HERDR_PLUGIN_STATE_DIR; fall back to cache dir when run standalone.
 STATE_DIR="${HERDR_PLUGIN_STATE_DIR:-$CACHE_DIR}"
 APPLIED_FILE="$STATE_DIR/applied"
+# User-added themes live in state (survive plugin updates), separate from the
+# bundled themes/ dir that a reinstall overwrites.
+USER_THEMES_DIR="$STATE_DIR/themes"
+USER_INDEX="$STATE_DIR/index.txt"
 
 die() { printf '%s\n' "$*" >&2; exit 1; }
 

@@ -96,7 +96,11 @@ swatch() {
 
 # Called by fzf to render one row's preview. Arg may carry the list prefix.
 if [ "${1:-}" = "--preview" ]; then
-  row="${2:-}"; row="${row#✓ }"; row="${row#  }"
+  row="${2:-}"
+  case "$row" in
+    "+ Add new theme"*) echo "  Paste a ghostty-format theme, name it, and it's"; echo "  saved to your themes and applied."; exit 0 ;;
+  esac
+  row="${row#✓ }"; row="${row#★ }"; row="${row#  }"
   swatch "$row"; exit 0
 fi
 
@@ -106,31 +110,70 @@ main() {
   local applied=""
   [ -f "$APPLIED_FILE" ] && applied="$(head -1 "$APPLIED_FILE" 2>/dev/null)"
 
-  # Build the list. The applied theme is marked with ✓ and floated to the top
-  # so the cursor lands on it — WITHOUT filtering the rest out (no --query).
-  local list; list="$(grep -v '^[[:space:]]*$' "$PLUGIN_ROOT/themes/index.txt")"
-  local display=""
-  if [ -n "$applied" ] && printf '%s\n' "$list" | grep -qx "$applied"; then
-    display="$(printf '✓ %s\n' "$applied")"
-    display="$display"$'\n'"$(printf '%s\n' "$list" | grep -vx "$applied" | sed 's/^/  /')"
-  else
-    display="$(printf '%s\n' "$list" | sed 's/^/  /')"
-  fi
+  # Merge bundled index + user-added index (deduped, user themes marked ★).
+  local bundled user_slugs=""
+  bundled="$(grep -v '^[[:space:]]*$' "$PLUGIN_ROOT/themes/index.txt")"
+  [ -f "$USER_INDEX" ] && user_slugs="$(grep -v '^[[:space:]]*$' "$USER_INDEX" || true)"
 
-  local sel
-  sel="$(printf '%s\n' "$display" | fzf \
+  local ADD_ROW="+ Add new theme…"
+
+  # Compose display list: applied (✓) first, then user themes (★), then bundled.
+  build_display() {
+    local applied="$1" bundled="$2" user_slugs="$3"
+    # user themes not equal to applied
+    printf '%s\n' "$user_slugs" | while IFS= read -r s; do
+      [ -z "$s" ] && continue
+      [ "$s" = "$applied" ] && continue
+      printf '★ %s\n' "$s"
+    done
+    # bundled not equal to applied and not already a user slug
+    printf '%s\n' "$bundled" | while IFS= read -r s; do
+      [ -z "$s" ] && continue
+      [ "$s" = "$applied" ] && continue
+      printf '%s\n' "$user_slugs" | grep -qxF "$s" && continue
+      printf '  %s\n' "$s"
+    done
+  }
+
+  local rest; rest="$(build_display "$applied" "$bundled" "$user_slugs")"
+  local display=""
+  if [ -n "$applied" ]; then
+    display="$(printf '✓ %s\n' "$applied")"$'\n'"$rest"
+  else
+    display="$rest"
+  fi
+  # Add-theme entry pinned at the bottom.
+  display="$display"$'\n'"$ADD_ROW"
+
+  # --expect=tab lets Tab trigger add-theme on the highlighted-or-not row too.
+  local out key sel
+  out="$(printf '%s\n' "$display" | fzf \
     --layout=reverse \
     --prompt="Search themes: " \
-    --header="type to search · ↑↓ browse · enter apply · esc cancel" \
+    --header="type to search · tab or ↵ on '+ Add new theme' to add · esc cancel" \
     --info=inline \
     --height=100% \
+    --expect=tab \
     --preview="bash '$PLUGIN_ROOT/bin/picker.sh' --preview {}" \
     --preview-window=right,62%,border-left)" || exit 0
 
-  # Strip the "✓ " / "  " prefix back to the bare slug.
-  sel="${sel#✓ }"; sel="${sel#  }"
-  [ -n "$sel" ] || exit 0
+  key="$(printf '%s\n' "$out" | sed -n '1p')"
+  sel="$(printf '%s\n' "$out" | sed -n '2p')"
+  # Strip row prefixes back to the bare slug.
+  sel="${sel#✓ }"; sel="${sel#★ }"; sel="${sel#  }"
 
+  # Tab, or choosing the add row → open the theme editor, then apply on save.
+  if [ "$key" = "tab" ] || [ "$sel" = "$ADD_ROW" ]; then
+    local new
+    new="$(bash "$PLUGIN_ROOT/bin/add.sh" | tail -1)" || exit 0
+    # add.sh prints the slug on its last line only on success.
+    if [ -n "$new" ] && printf '%s\n' "$new" | grep -qxE '[a-z0-9-]+'; then
+      bash "$PLUGIN_ROOT/bin/apply.sh" "$new"
+    fi
+    exit 0
+  fi
+
+  [ -n "$sel" ] || exit 0
   bash "$PLUGIN_ROOT/bin/apply.sh" "$sel"
   # Popup closes automatically when this process exits — no keypress needed.
 }

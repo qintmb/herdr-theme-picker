@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com); versions follow semver and
 match the `version` field in `herdr-plugin.toml`.
 
+## [0.4.0] — 2026-08-19
+
+- **Add themes from inside the picker.** A `+ Add new theme…` row is pinned at
+  the bottom; press **Tab** (from anywhere) or **Enter** on that row to open
+  your `$EDITOR` with a ghostty-format template. Paste a palette, save, name
+  it, and it's validated, saved, appended to the list, and applied.
+- User-added themes live in `HERDR_PLUGIN_STATE_DIR/themes` + `index.txt`, so
+  plugin updates never overwrite them; they show in the list marked `★`.
+- `apply.sh` now fails safely (config untouched) on an unresolved or invalid
+  palette instead of writing an empty block.
+- All user-facing strings are English.
+
 ## [0.3.0] — 2026-08-19
 
 - **Fix:** reopening the picker no longer hides the other themes. The applied

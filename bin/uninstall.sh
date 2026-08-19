@@ -4,7 +4,7 @@ _here="$(dirname "${BASH_SOURCE[0]}")"
 source "$_here/lib.sh"
 
 main() {
-  command -v herdr >/dev/null || die "herdr tidak ditemukan di PATH."
+  command -v herdr >/dev/null || die "herdr not found in PATH."
   herdr plugin unlink herdr-theme-picker 2>/dev/null || true
   herdr server reload-config >/dev/null 2>&1 || true
   echo "Unlinked."

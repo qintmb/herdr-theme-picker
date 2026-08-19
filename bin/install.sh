@@ -6,10 +6,10 @@ source "$_here/lib.sh"
 PLUGIN_ROOT="$(cd "$_here/.." && pwd)"
 
 main() {
-  command -v herdr >/dev/null || die "herdr tidak ditemukan di PATH."
-  herdr plugin link "$PLUGIN_ROOT" || die "herdr plugin link gagal"
+  command -v herdr >/dev/null || die "herdr not found in PATH."
+  herdr plugin link "$PLUGIN_ROOT" || die "herdr plugin link failed"
   herdr server reload-config >/dev/null 2>&1 || true
-  echo "Linked. Keybind prefix+t sudah didaftarkan lewat manifest."
-  echo "Tekan prefix+t (prefix default cmd+b) untuk buka picker."
+  echo "Linked. The prefix+t keybind is registered via the manifest."
+  echo "Press prefix+t (default prefix cmd+b) to open the picker."
 }
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then main "$@"; fi

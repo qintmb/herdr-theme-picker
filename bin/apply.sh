@@ -26,8 +26,10 @@ main() {
   [ -f "$CONFIG_PATH" ] || die "config not found: $CONFIG_PATH"
 
   local palette tokens
-  palette="$(resolve_palette "$slug")"
-  tokens="$(palette_to_tokens "$palette")"
+  palette="$(resolve_palette "$slug")" || die "cannot resolve theme: $slug"
+  [ -n "$palette" ] && [ -f "$palette" ] || die "cannot resolve theme: $slug"
+  tokens="$(palette_to_tokens "$palette")" || die "invalid palette for: $slug"
+  [ -n "$tokens" ] || die "invalid palette for: $slug"
 
   local stamp; stamp="$(date +%Y%m%d)"
   local bak="$CONFIG_PATH.bak-$stamp"
@@ -46,5 +48,5 @@ main() {
   fi
 }
 
-# Jalankan main hanya bila dieksekusi langsung (bukan di-source oleh test).
+# Run main only when executed directly (not when sourced by a test).
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then main "$@"; fi
