@@ -29,4 +29,18 @@ if [ "$(get surface_dim)" = "#282a36" ]; then echo "FAIL surface_dim not darkene
 n="$(printf '%s\n' "$out" | grep -c '=')"
 [ "$n" = 16 ] || { echo "FAIL token count: $n"; fail=1; }
 
+# hpick-override lines win over the derived mapping.
+ov="$(mktemp)"; cat tests/fixtures/dracula-default > "$ov"
+printf '# hpick-override: accent=#fa390f\n# hpick-override: red=#ed4b19\n' >> "$ov"
+oout="$(palette_to_tokens "$ov")"
+oget() { printf '%s\n' "$oout" | grep "^$1=" | cut -d= -f2-; }
+[ "$(oget accent)" = "#fa390f" ] || { echo "FAIL override accent: $(oget accent)"; fail=1; }
+[ "$(oget red)" = "#ed4b19" ] || { echo "FAIL override red: $(oget red)"; fail=1; }
+# non-overridden token unchanged
+[ "$(oget blue)" = "#bd93f9" ] || { echo "FAIL override leaked to blue: $(oget blue)"; fail=1; }
+# still 16 tokens after overrides
+on="$(printf '%s\n' "$oout" | grep -c '=')"
+[ "$on" = 16 ] || { echo "FAIL override token count: $on"; fail=1; }
+rm -f "$ov"
+
 [ "$fail" = 0 ] && echo "PASS test_map" || exit 1

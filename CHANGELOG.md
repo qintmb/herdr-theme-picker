@@ -4,6 +4,23 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com); versions follow semver and
 match the `version` field in `herdr-plugin.toml`.
 
+## [0.6.0] — 2026-08-21
+
+- **Legend in the preview.** The preview pane now shows which Herdr token each
+  palette line drives (`accent ← palette 4`, `red ← palette 1`, …) with a color
+  chip, so it's clear why a scheme's dominant color isn't necessarily the
+  selector. Documents that `palette 10–15` are unused by the mapping.
+- **Edit a custom theme (`ctrl-e`).** Built-in fzf token editor (no external
+  editor): pick a Herdr token, type a new hex, and the preview rebuilds live to
+  show what changes. `✓ Save & apply` commits; `esc` discards. Edits persist as
+  per-theme `# hpick-override:` lines layered over the derived mapping.
+- **Delete a custom theme (`ctrl-d`).** Confirm `y`/`N`; only ★ user themes can
+  be deleted — bundled themes are refused.
+- `map.sh` gains `apply_overrides` + token origin/role metadata; new
+  `bin/edit.sh`, `bin/delete.sh`, `lib.sh:is_user_theme`; new
+  `tests/test_edit.sh`, `tests/test_delete.sh`, override cases in
+  `tests/test_map.sh`.
+
 ## [0.5.0] — 2026-08-21
 
 - **Editor prefers nvim.** The `+ Add new theme…` flow now opens **nvim** when

@@ -140,6 +140,40 @@ User-added themes are stored in `HERDR_PLUGIN_STATE_DIR/themes` (with their own
 `index.txt`), so plugin updates never overwrite them. They appear in the list
 marked `★`.
 
+### Which palette line drives which part of Herdr
+
+A ghostty palette has 18+ colors, but Herdr's theme uses a fixed set of tokens.
+The preview pane shows a **legend** mapping each Herdr token to the palette line
+it comes from — so if a scheme has a dominant bright red in `palette 13–15`,
+you can see at a glance that the *selector/active-pane border* is `accent ←
+palette 4`, not that red. `palette 10–15` are not used by the default mapping.
+
+| Herdr token | from | Herdr role |
+|---|---|---|
+| accent / blue | palette 4 | active pane border / selector |
+| red | palette 1 | error ✗ |
+| green | palette 2 | success ✓ |
+| yellow | palette 3 | warning |
+| teal | palette 6 | now-playing |
+| mauve / peach | palette 5 / 9 | accents |
+| panel_bg / text | background / foreground | pane bg / text |
+| surface0/1, overlay0/1, subtext0 | palette 0/7/8 | surfaces & dim text |
+
+### Edit a custom theme (`ctrl-e`)
+
+Select a `★` user theme and press **ctrl-e** to open the built-in token editor
+(no external editor). It lists the editable Herdr tokens with their current hex
+and origin; the preview pane shows the Herdr mockup **rebuilt live** as you
+change colors. Enter on a token → type a new `#rrggbb` → the preview updates.
+`✓ Save & apply` commits and applies; `esc` discards. Edits are stored as
+per-theme override lines, so the derived mapping stays intact for everything you
+didn't touch. (Bundled themes are read-only.)
+
+### Delete a custom theme (`ctrl-d`)
+
+Select a `★` user theme and press **ctrl-d**; confirm `y` at the prompt. Only
+user-added themes can be deleted — bundled Herdr themes are refused.
+
 Available themes are listed in `themes/index.txt`. Bundled ones work offline;
 the rest are fetched on selection.
 

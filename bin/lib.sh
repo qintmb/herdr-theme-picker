@@ -16,6 +16,17 @@ is_valid_slug() {
   [[ "$1" =~ ^[a-z0-9-]+$ ]]
 }
 
+# is_user_theme <slug>: true only for themes the user added (in USER_INDEX with
+# a file under USER_THEMES_DIR). Bundled/remote themes are never user themes,
+# so edit/delete can refuse to touch them.
+is_user_theme() {
+  local slug="$1"
+  is_valid_slug "$slug" || return 1
+  [ -f "$USER_INDEX" ] || return 1
+  grep -qxF "$slug" "$USER_INDEX" || return 1
+  [ -f "$USER_THEMES_DIR/$slug" ]
+}
+
 # darken_hex #rrggbb percent -> #rrggbb (tiap kanal * (100-p)/100, clamp 0)
 darken_hex() {
   local hex="${1#\#}" p="$2" r g b
