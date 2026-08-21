@@ -126,12 +126,15 @@ list; the rest stay browsable so you can switch freely.
 
 ### Add your own theme (from inside the picker)
 
-A `+ Add new theme…` row is pinned at the bottom of the list. Press **Tab**
-(from anywhere) or **Enter** on that row to:
+Two rows are pinned at the bottom of the list:
 
-1. Open your `$EDITOR` with a ghostty-format template.
+**`+ Add new theme…`** — press **Tab** (from anywhere) or **Enter** on that row to:
+
+1. Open an editor with a ghostty-format template — **nvim** is used when installed, otherwise `$VISUAL`/`$EDITOR`, then `nano`/`vi`.
 2. Paste a palette (e.g. terminalcolors.com → Download → **Ghostty**), save, and close.
 3. Type a name — it's slugified, validated, saved, appended to the list, and applied immediately.
+
+**`+ Add from clipboard…`** — Enter on this row skips the editor entirely: it reads a ghostty-format palette straight from your system clipboard (`pbpaste`/`wl-paste`/`xclip`/`xsel`), asks only for a name, then saves and applies. Copy a palette, open the picker, pick this row, type a name — done.
 
 User-added themes are stored in `HERDR_PLUGIN_STATE_DIR/themes` (with their own
 `index.txt`), so plugin updates never overwrite them. They appear in the list

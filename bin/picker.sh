@@ -98,7 +98,8 @@ swatch() {
 if [ "${1:-}" = "--preview" ]; then
   row="${2:-}"
   case "$row" in
-    "+ Add new theme"*) echo "  Paste a ghostty-format theme, name it, and it's"; echo "  saved to your themes and applied."; exit 0 ;;
+    "+ Add from clipboard"*) echo "  Reads a ghostty-format palette from your clipboard,"; echo "  asks a name, saves and applies — no editor."; exit 0 ;;
+    "+ Add new theme"*) echo "  Opens an editor (nvim if present) to paste a"; echo "  ghostty-format theme; name it, saved and applied."; exit 0 ;;
   esac
   row="${row#✓ }"; row="${row#★ }"; row="${row#  }"
   swatch "$row"; exit 0
@@ -116,6 +117,7 @@ main() {
   [ -f "$USER_INDEX" ] && user_slugs="$(grep -v '^[[:space:]]*$' "$USER_INDEX" || true)"
 
   local ADD_ROW="+ Add new theme…"
+  local ADD_CLIP_ROW="+ Add from clipboard…"
 
   # Compose display list: applied (✓) first, then user themes (★), then bundled.
   build_display() {
@@ -142,15 +144,15 @@ main() {
   else
     display="$rest"
   fi
-  # Add-theme entry pinned at the bottom.
-  display="$display"$'\n'"$ADD_ROW"
+  # Add-theme entries pinned at the bottom.
+  display="$display"$'\n'"$ADD_ROW"$'\n'"$ADD_CLIP_ROW"
 
   # --expect=tab lets Tab trigger add-theme on the highlighted-or-not row too.
   local out key sel
   out="$(printf '%s\n' "$display" | fzf \
     --layout=reverse \
     --prompt="Search themes: " \
-    --header="type to search · tab or ↵ on '+ Add new theme' to add · esc cancel" \
+    --header="type to search · ↵ on '+ Add' to paste in editor · '+ Add from clipboard' to skip editor · esc cancel" \
     --info=inline \
     --height=100% \
     --expect=tab \
@@ -159,6 +161,17 @@ main() {
 
   key="$(printf '%s\n' "$out" | sed -n '1p')"
   sel="$(printf '%s\n' "$out" | sed -n '2p')"
+
+  # Add from clipboard → no editor, straight to name+save.
+  if [ "$sel" = "$ADD_CLIP_ROW" ]; then
+    local new
+    new="$(bash "$PLUGIN_ROOT/bin/add.sh" --clipboard | tail -1)" || exit 0
+    if [ -n "$new" ] && printf '%s\n' "$new" | grep -qxE '[a-z0-9-]+'; then
+      bash "$PLUGIN_ROOT/bin/apply.sh" "$new"
+    fi
+    exit 0
+  fi
+
   # Strip row prefixes back to the bare slug.
   sel="${sel#✓ }"; sel="${sel#★ }"; sel="${sel#  }"
 

@@ -4,6 +4,19 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com); versions follow semver and
 match the `version` field in `herdr-plugin.toml`.
 
+## [0.5.0] — 2026-08-21
+
+- **Editor prefers nvim.** The `+ Add new theme…` flow now opens **nvim** when
+  it's installed (falling back to `$VISUAL`/`$EDITOR`, then `nano`/`vi`), so
+  pasting/editing a palette is comfortable instead of dropping into raw `vi`.
+- **`+ Add from clipboard…` row.** A second add row skips the editor entirely:
+  reads a ghostty-format palette from the system clipboard
+  (`pbpaste`/`wl-paste`/`xclip`/`xsel`), prompts only for a name, then saves,
+  indexes, and applies. Copy → open picker → pick → name → done.
+- Refactored `add.sh` around a shared `_finalize` (validate → name → save →
+  index) with editor and clipboard entry points; prompts are testable via
+  `TTY_IN`. Added `_finalize`/`pick_editor` self-checks to `test_add.sh`.
+
 ## [0.4.0] — 2026-08-19
 
 - **Add themes from inside the picker.** A `+ Add new theme…` row is pinned at
