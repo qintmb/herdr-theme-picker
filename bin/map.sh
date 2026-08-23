@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
-# The 13 Herdr theme tokens this plugin writes, and the ghostty palette line
+# The Herdr theme tokens this plugin writes, and the ghostty palette line
 # each is derived from — surfaced to the user as a legend and as the editable
 # set for per-token overrides. Keep in sync with palette_to_tokens below.
-TOKEN_ORDER=(panel_bg text surface0 surface1 overlay0 overlay1 subtext0 \
-  accent blue mauve green yellow red teal peach surface_dim)
+TOKEN_ORDER=(panel_bg sidebar_bg active_row_bg selection_bg text surface0 \
+  surface1 overlay0 overlay1 subtext0 accent blue mauve green yellow red \
+  teal peach surface_dim)
 # human-facing origin label per token (what palette line feeds it)
 token_origin() {
   case "$1" in
     panel_bg) echo "background" ;;
+    sidebar_bg) echo "background −15%" ;;
+    active_row_bg) echo "palette 0" ;;
+    selection_bg) echo "selection-bg" ;;
     text) echo "foreground" ;;
     surface0) echo "palette 0" ;;
     surface1|overlay0) echo "palette 8" ;;
@@ -29,6 +33,9 @@ token_origin() {
 token_role() {
   case "$1" in
     panel_bg) echo "pane background" ;;
+    sidebar_bg) echo "sidebar background" ;;
+    active_row_bg) echo "selected sidebar row" ;;
+    selection_bg) echo "text selection bg" ;;
     text) echo "primary text" ;;
     surface0) echo "sidebar row bg" ;;
     surface1) echo "inactive pane bg" ;;
@@ -77,19 +84,21 @@ apply_overrides() {
   # Also allow overrides for tokens not present as derived lines (defensive).
 }
 
-# palette_to_tokens <file> -> 16 baris "token=#hex" (overrides applied)
+# palette_to_tokens <file> -> 19 baris "token=#hex" (overrides applied)
 palette_to_tokens() {
-  local f="$1" bg fg p0 p1 p2 p3 p4 p5 p6 p7 p8 p9
+  local f="$1" bg fg sel p0 p1 p2 p3 p4 p5 p6 p7 p8 p9
   p0="$(_pget "$f" p0)"
   [ -n "$p0" ] || die "not a valid ghostty palette: $f"
   bg="$(_pget "$f" background)"; fg="$(_pget "$f" foreground)"
+  sel="$(_pget "$f" selection-background)"
+  : "${sel:=$p8}"  # fallback when the theme has no selection-background line
   p1="$(_pget "$f" p1)"; p2="$(_pget "$f" p2)"; p3="$(_pget "$f" p3)"
   p4="$(_pget "$f" p4)"; p5="$(_pget "$f" p5)"; p6="$(_pget "$f" p6)"
   p7="$(_pget "$f" p7)"; p8="$(_pget "$f" p8)"; p9="$(_pget "$f" p9)"
   : "${p9:=$p3}"  # fallback peach
   local derived
-  derived="$(printf 'panel_bg=%s\nsurface0=%s\nsurface1=%s\nsurface_dim=%s\noverlay0=%s\noverlay1=%s\ntext=%s\nsubtext0=%s\naccent=%s\nmauve=%s\ngreen=%s\nyellow=%s\nred=%s\nblue=%s\nteal=%s\npeach=%s\n' \
-    "$bg" "$p0" "$p8" "$(darken_hex "$bg" 8)" "$p8" "$p7" "$fg" "$p7" \
+  derived="$(printf 'panel_bg=%s\nsidebar_bg=%s\nactive_row_bg=%s\nselection_bg=%s\nsurface0=%s\nsurface1=%s\nsurface_dim=%s\noverlay0=%s\noverlay1=%s\ntext=%s\nsubtext0=%s\naccent=%s\nmauve=%s\ngreen=%s\nyellow=%s\nred=%s\nblue=%s\nteal=%s\npeach=%s\n' \
+    "$bg" "$(darken_hex "$bg" 15)" "$p0" "$sel" "$p0" "$p8" "$(darken_hex "$bg" 8)" "$p8" "$p7" "$fg" "$p7" \
     "$p4" "$p5" "$p2" "$p3" "$p1" "$p4" "$p6" "$p9")"
   apply_overrides "$f" "$derived"
 }

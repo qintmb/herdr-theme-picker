@@ -9,8 +9,8 @@ source "$_here/map.sh"    # TOKEN_ORDER, token_origin/role, palette_to_tokens, l
 PLUGIN_ROOT="${HERDR_PLUGIN_ROOT:-$(cd "$_here/.." && pwd)}"
 
 # Editable tokens (skip surface_dim which is derived from bg).
-EDIT_TOKENS=(accent red green yellow blue teal mauve peach text panel_bg \
-  surface0 surface1 subtext0)
+EDIT_TOKENS=(accent active_row_bg selection_bg red green yellow blue teal \
+  mauve peach text panel_bg sidebar_bg surface0 surface1 subtext0)
 
 # build_list <scratch-file>: one row per token = "token  #hex  ← origin  role"
 build_list() {

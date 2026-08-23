@@ -24,10 +24,15 @@ check overlay1 "#f8f8f2"
 check subtext0 "#f8f8f2"
 check peach "#ff6e6e"
 
+# new herdr tokens
+check selection_bg "#44475a"
+check active_row_bg "#21222c"
+if [ "$(get sidebar_bg)" = "#282a36" ]; then echo "FAIL sidebar_bg not darkened"; fail=1; fi
+
 if [ "$(get surface_dim)" = "#282a36" ]; then echo "FAIL surface_dim not darkened"; fail=1; fi
 
 n="$(printf '%s\n' "$out" | grep -c '=')"
-[ "$n" = 16 ] || { echo "FAIL token count: $n"; fail=1; }
+[ "$n" = 19 ] || { echo "FAIL token count: $n"; fail=1; }
 
 # hpick-override lines win over the derived mapping.
 ov="$(mktemp)"; cat tests/fixtures/dracula-default > "$ov"
@@ -38,9 +43,9 @@ oget() { printf '%s\n' "$oout" | grep "^$1=" | cut -d= -f2-; }
 [ "$(oget red)" = "#ed4b19" ] || { echo "FAIL override red: $(oget red)"; fail=1; }
 # non-overridden token unchanged
 [ "$(oget blue)" = "#bd93f9" ] || { echo "FAIL override leaked to blue: $(oget blue)"; fail=1; }
-# still 16 tokens after overrides
+# still 19 tokens after overrides
 on="$(printf '%s\n' "$oout" | grep -c '=')"
-[ "$on" = 16 ] || { echo "FAIL override token count: $on"; fail=1; }
+[ "$on" = 19 ] || { echo "FAIL override token count: $on"; fail=1; }
 rm -f "$ov"
 
 [ "$fail" = 0 ] && echo "PASS test_map" || exit 1

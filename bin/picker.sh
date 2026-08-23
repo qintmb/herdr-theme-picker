@@ -31,9 +31,11 @@ swatch_file() {
   local file="$1" label="${2:-preview}" tok
   tok="$(palette_to_tokens "$file" 2>/dev/null)" || { echo "(invalid palette)"; return 0; }
   tget() { printf '%s\n' "$tok" | grep "^$1=" | cut -d= -f2-; }
-  local panel_bg text accent blue green red yellow mauve teal peach
+  local panel_bg sidebar_bg active_row_bg selection_bg text accent blue green red yellow mauve teal peach
   local subtext0 surface0 surface1 surface_dim overlay0 overlay1
   panel_bg="$(tget panel_bg)"; text="$(tget text)"; accent="$(tget accent)"
+  sidebar_bg="$(tget sidebar_bg)"; active_row_bg="$(tget active_row_bg)"
+  selection_bg="$(tget selection_bg)"
   blue="$(tget blue)"; green="$(tget green)"; red="$(tget red)"
   yellow="$(tget yellow)"; mauve="$(tget mauve)"; teal="$(tget teal)"
   peach="$(tget peach)"; subtext0="$(tget subtext0)"
@@ -47,10 +49,13 @@ swatch_file() {
   local PB=13   # right pane width
 
   # Column helpers bound to this theme's colors.
-  # sidebar row: bg=surface0, fg passed
+  # sidebar row: bg=surface0, fg passed; active sidebar row: bg=active_row_bg
   sb()  { _cell "$surface0" "$1" "$(_padr "$SB" "$2")"; }
+  sba() { _cell "$active_row_bg" "$1" "$(_padr "$SB" "$2")"; }
   # active pane row: bg=panel_bg (border accent shown via left bar)
   pane(){ local bg="$1" fg="$2" w="$3" t="$4"; _cell "$bg" "$fg" "$(_padr "$w" "$t")"; }
+  # selected-text run: bg=selection_bg
+  selfg(){ _cell "$selection_bg" "$1" "$(_padr "$2" "$3")"; }
 
   printf '  %s\n\n' "$slug"
 
@@ -61,21 +66,21 @@ swatch_file() {
   printf '\n'
 
   # ── Row 1: sidebar space header + two pane title bars ─────────────
-  printf '%s' "$(sb "$accent" ' ■ AGENT')"
+  printf '%s' "$(sba "$accent" ' ■ AGENT')"
   _cell "$surface1" "$text"     " ~/proj  pi "
   _cell "$panel_bg" "$overlay0" " ~/proj     "
   printf '\n'
 
-  # ── Row 2: cpu/ram + pane bodies (active pane = brighter bg) ──────
+  # ── Row 2: cpu/ram + pane bodies (right pane shows a text selection) ──
   printf '%s' "$(sb "$subtext0" ' cpu·ram 3%')"
   pane "$panel_bg" "$text"    "$PA" ' fox jumps'
-  pane "$surface_dim" "$overlay0" "$PB" ' idle'
+  selfg "$overlay1" "$((PB-6))" ' idle '
   printf '\n'
 
   # ── Row 3: now-playing + accent line in active pane ───────────────
   printf '%s' "$(sb "$teal" ' ▶ Runaway')"
   pane "$panel_bg" "$accent"  "$PA" ' accent >'
-  pane "$surface_dim" "$overlay1" "$PB" ''
+  _cell "$surface_dim" "$overlay0" "$(_padr $((PB)) '')"
   printf '\n'
 
   # ── Row 4: second space (dim) + pane status colors ────────────────
@@ -106,7 +111,7 @@ swatch_file() {
   # Answers "why isn't the dominant red the selector?" — accent ← palette 4.
   _fg "$subtext0" ' token       source        role'; printf '\n'
   local t val
-  for t in accent red green yellow blue teal mauve peach text panel_bg; do
+  for t in accent active_row_bg selection_bg red green yellow blue teal mauve peach text panel_bg sidebar_bg; do
     val="$(tget "$t")"
     printf ' '
     _cell "${val:-$panel_bg}" "$panel_bg" '  '   # color chip
