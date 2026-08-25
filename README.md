@@ -14,9 +14,10 @@ palettes from terminalcolors.com: pick one from a popup, and its colors are
 mapped into `[theme.custom]` in your `config.toml` and reloaded automatically.
 
 > **Scope:** the plugin recolors **Herdr's UI chrome** (panels, sidebar,
-> accents) through `[theme.custom]`. It does **not** change the terminal cell
-> colors (the 16 ANSI colors) — those are controlled by your terminal
-> emulator (Ghostty, iTerm, …), not by Herdr.
+> accents) through `[theme.custom]` **and** syncs the 16 ANSI terminal cell
+> colors to your host terminal emulator live via OSC sequences. See
+> [Terminal emulator sync](#terminal-emulator-sync) for optional per-emulator
+> setup (e.g. Ghostty config persistence for new windows).
 
 ---
 
@@ -28,6 +29,9 @@ mapped into `[theme.custom]` in your `config.toml` and reloaded automatically.
   GitHub, …).
 - **Live-fetch** any other theme from terminalcolors.com on selection
   (needs internet), cached locally.
+- **Live terminal color sync** — OSC 4/10/11 sequences update your terminal
+  emulator's ANSI palette instantly, no restart needed. Works with any
+  emulator that supports OSC color setting (Ghostty, iTerm2, WezTerm, …).
 - **Automatic backup** of `config.toml` before writing.
 - **Idempotent & reversible.**
 
@@ -192,12 +196,14 @@ prefix+t → picker.sh (fzf)
              │  pick a slug
              ▼
           apply.sh <slug>
-             │  1. resolve_palette   → themes/<slug>  or  fetch terminalcolors.com (cached)
-             │  2. palette_to_tokens → 16 [theme.custom] tokens
-             │  3. write config.toml (backup: config.toml.bak-YYYYMMDD)
-             │  4. herdr server reload-config
+             │  1. resolve_palette      → themes/<slug>  or  fetch terminalcolors.com (cached)
+             │  2. palette_to_tokens    → 16 [theme.custom] tokens
+             │  3. write config.toml   (backup: config.toml.bak-YYYYMMDD)
+             │  4. sync_terminal_colors → OSC 4/10/11 to outer PTY (live ANSI update)
+             │                         → copy palette to ~/.config/ghostty/herdr-theme (if present)
+             │  5. herdr server reload-config
              ▼
-          Herdr UI updates
+          Herdr UI + terminal emulator update simultaneously
 ```
 
 Palettes are read in **ghostty format** (`background`, `foreground`,
@@ -213,6 +219,48 @@ Palettes are read in **ghostty format** (`background`, `foreground`,
 | `overlay1` | `palette 7` | | `yellow` | `palette 3` |
 | `mauve` | `palette 5` | | `teal` | `palette 6` |
 | `peach` | `palette 9` | | | |
+
+---
+
+## Terminal emulator sync
+
+When you pick a theme, `apply.sh` automatically emits **OSC 4** (palette),
+**OSC 10** (foreground), and **OSC 11** (background) sequences to the
+terminal emulator that is hosting Herdr. This updates the live session's
+ANSI colors instantly — no restart required.
+
+Because Herdr is a terminal multiplexer, its internal panes intercept
+`/dev/tty` writes before they reach the outer emulator. The plugin works
+around this by locating the PTY slave that the Herdr client renders into
+and writing there directly.
+
+Any terminal emulator that supports OSC 4/10/11 benefits automatically —
+Ghostty, iTerm2, WezTerm, Alacritty, and others. **No configuration is
+needed** for the live sync to work.
+
+### Ghostty: persist colors for new windows
+
+The OSC approach updates the **current** window. New Ghostty windows will
+still open with whatever colors your `~/.config/ghostty/config` defines.
+To keep new windows in sync too, set up a one-time Ghostty config include:
+
+**1.** Create the theme fragment file:
+
+```bash
+touch ~/.config/ghostty/herdr-theme
+```
+
+**2.** Add it to your Ghostty config (`~/.config/ghostty/config`):
+
+```
+config-file = herdr-theme
+```
+
+**3.** Restart Ghostty once.
+
+From then on, every theme pick writes the palette to `herdr-theme` and
+Ghostty picks it up on next launch. Combined with the live OSC sync, the
+current window and all future windows stay consistent.
 
 ---
 
