@@ -61,8 +61,17 @@ herdr plugin install qintmb/herdr-theme-picker
 ```
 
 Herdr shows an install preview for review before proceeding (use `--yes` for
-non-interactive install). The `prefix+t` keybind is registered by the plugin
-manifest — no manual `config.toml` editing required.
+non-interactive install).
+
+⚠️ **Important:** Herdr 0.8.2 does not automatically bind keys from plugin
+manifests. After installing, add this to your `config.toml`:
+
+```toml
+[[keys.command]]
+key = "prefix+t"
+type = "plugin_action"
+command = "herdr-theme-picker.open"
+```
 
 Then reload the running server:
 
@@ -296,6 +305,11 @@ description = "pick a color theme"
 Herdr does not run commands through a shell, so each `command` is an explicit
 argv array. Plugins reach Herdr via `HERDR_BIN_PATH` (or the socket API).
 
+> **Note:** Herdr 0.8.2 does not bind keys declared in the manifest's
+> `[[keys.command]]` block. The block above is kept as a declaration of intent,
+> but you must also add the same block to your `config.toml` for the keybind to
+> actually trigger.
+
 ---
 
 ## Customization
@@ -333,8 +347,10 @@ for derived shades.
 
 ### Change the keybind
 
-Edit `key = "prefix+t"` in `herdr-plugin.toml` to another combination
-(e.g. `prefix+shift+t`), then `herdr server reload-config`.
+Edit `key = "prefix+t"` in your `config.toml` to another combination
+(e.g. `prefix+shift+t`), then `herdr server reload-config`. The manifest's
+`[[keys.command]]` block is kept as a declaration of intent, but Herdr 0.8.2
+ignores it.
 
 ---
 
@@ -357,8 +373,9 @@ herdr plugin unlink    herdr-theme-picker     # linked local checkout (or: bash 
 herdr server reload-config
 ```
 
-Removing the plugin drops the `prefix+t` keybind with it (it lives in the
-manifest). Your `[theme.custom]` block and its backups remain in
+If you added the `prefix+t` keybind block to your `config.toml` manually (see
+[Install](#install)), remove it there too — Herdr 0.8.2 does not bind keys from
+plugin manifests. Your `[theme.custom]` block and its backups remain in
 `config.toml` until you edit them out.
 
 ---

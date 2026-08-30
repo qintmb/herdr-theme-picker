@@ -4,6 +4,23 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com); versions follow semver and
 match the `version` field in `herdr-plugin.toml`.
 
+## [0.7.0] — 2026-08-30
+
+- **Live terminal color sync** (contributed by @neospeed83 in #2). `apply.sh`
+  now emits OSC 4/10/11 sequences to the terminal emulator hosting Herdr,
+  updating the 16 ANSI palette colors instantly on every theme pick — no
+  terminal restart required. Works with any emulator that supports OSC color
+  setting (Ghostty, iTerm2, WezTerm, Alacritty, …). The plugin locates the
+  outer PTY slave via `ps` because Herdr's multiplexer intercepts
+  `/dev/tty` writes.
+- **Optional Ghostty new-window persistence.** When `~/.config/ghostty/herdr-theme`
+  exists and is `config-file`d from your Ghostty config, the plugin mirrors
+  every picked palette there so new Ghostty windows open with the same theme.
+- **README fix.** Herdr 0.8.2 does not bind keys declared in a plugin's
+  manifest `[[keys.command]]` block. README now instructs users to add the
+  `prefix+t` block to their `config.toml` manually (Install, Uninstall,
+  Change the keybind, Manifest sections updated).
+
 ## [0.6.0] — 2026-08-21
 
 - **Legend in the preview.** The preview pane now shows which Herdr token each
