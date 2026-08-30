@@ -20,6 +20,38 @@ write_custom_block() {
   mv "$cfg.tmp" "$cfg"
 }
 
+# Emit OSC 4/10/11 sequences to the terminal emulator hosting Herdr so that
+# ANSI palette colors update live without a restart. Herdr's multiplexer
+# intercepts /dev/tty writes, so we target the outer PTY directly — the
+# slave device associated with the herdr client process.
+# Also refreshes ~/.config/ghostty/herdr-theme when present (opt-in Ghostty
+# persistence; see README § Terminal emulator sync).
+sync_terminal_colors() {
+  local palette_file="$1"
+
+  local outer_tty
+  outer_tty=$(ps -eo tty,comm 2>/dev/null \
+    | awk '$2=="herdr" && $1!="??" {print "/dev/"$1; exit}')
+
+  if [ -n "$outer_tty" ] && [ -w "$outer_tty" ]; then
+    while IFS='= ' read -r key val; do
+      val="${val%%[[:space:]]*}"
+      case "$key" in
+        "palette")
+          local idx color; idx="${val%%=*}"; color="${val##*=}"
+          printf "\033]4;%s;%s\007" "$idx" "$color" >> "$outer_tty"
+          ;;
+        "foreground") printf "\033]10;%s\007" "$val" >> "$outer_tty" ;;
+        "background") printf "\033]11;%s\007" "$val" >> "$outer_tty" ;;
+      esac
+    done < "$palette_file"
+  fi
+
+  # Ghostty: keep the included config fragment up to date for new windows.
+  local ghostty_theme="$HOME/.config/ghostty/herdr-theme"
+  [ -f "$ghostty_theme" ] && cp "$palette_file" "$ghostty_theme"
+}
+
 main() {
   local slug="${1:-}"
   [ -n "$slug" ] || die "usage: apply.sh <slug>"
@@ -40,6 +72,8 @@ main() {
   # Record applied theme so the picker can mark it next time.
   mkdir -p "$STATE_DIR"
   printf '%s\n' "$slug" > "$APPLIED_FILE"
+
+  sync_terminal_colors "$palette"
 
   if herdr server reload-config >/dev/null 2>&1; then
     printf 'Applied theme "%s".\n' "$slug"
