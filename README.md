@@ -1,7 +1,7 @@
 # herdr-theme-picker
 
 <p align="center">
-  <img src="preview.png" alt="herdr-theme-picker preview — fzf popup with theme swatches" width="80%">
+  <img alt="Screenshot 2026-09-01 at 07 13 31" src="https://github.com/user-attachments/assets/5100a157-1ed1-4659-be98-b846fb98681d" width=70%/>
 </p>
 
 Pick any color theme from [terminalcolors.com](https://terminalcolors.com)
@@ -20,7 +20,19 @@ mapped into `[theme.custom]` in your `config.toml` and reloaded automatically.
 > setup (e.g. Ghostty config persistence for new windows).
 
 ---
+## Preview
+<p align="center">
+<video
+  src="https://github.com/user-attachments/assets/866d7f05-216d-443e-93be-5edfd65a1312"
+  autoplay
+  muted
+  loop
+  playsinline
+  width="80%">
+</video>
+</p>
 
+---
 ## Features
 
 - **`prefix+t`** → an fzf popup with a live truecolor swatch preview.
