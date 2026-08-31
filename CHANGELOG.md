@@ -4,6 +4,22 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com); versions follow semver and
 match the `version` field in `herdr-plugin.toml`.
 
+## [0.8.1] — 2026-09-01
+
+- **Precise pane borders.** The preview's box-drawing rules no longer get
+  ragged: `_padr` was padding by *bytes* (`printf %-*. Ns`), so rows containing
+  `─ │ ○ ✓` came out 2 columns short at any font size. Padding now counts
+  characters; the UTF-8 locale is forced when the inherited one is byte-based.
+- **Closed inactive-pane box.** The dim pane is now a full rectangle with a
+  gray (`overlay0`) border matching the accent border of the focused pane.
+- **Sidebar spaces renamed** `AGENT/LINUX → space1/space2`, each showing its
+  `main` workspace — no theme-specific workspace names in the mock.
+- **Gray footer text.** `new/menu/agents/priority` now render in `overlay0`
+  (they were one notch too bright at `subtext0`).
+- **Selected agent row.** The AGENT panel shows a highlighted agent (accent
+  name on `active_row_bg`) beside a dim unselected one; legend adds
+  `overlay0`/`surface_dim` rows and no longer truncates token names.
+
 ## [0.8.0] — 2026-08-31
 
 - **Workspace-faithful theme preview.** The fzf preview pane now renders a mock
