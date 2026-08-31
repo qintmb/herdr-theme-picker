@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com); versions follow semver and
 match the `version` field in `herdr-plugin.toml`.
 
+## [0.8.0] — 2026-08-31
+
+- **Workspace-faithful theme preview.** The fzf preview pane now renders a mock
+  of a real Herdr workspace in the candidate theme's colors: focused pane with
+  its full accent border, active vs inactive tabs, spaces sidebar (selected
+  workspace row, `new/menu`, `agents/priority` footer), powerline prompt,
+  a text-selection run, and the AGENT panel with a state dot and agent name.
+  The preview now answers "what will my workspace look like with this theme
+  applied" instead of showing an abstract swatch.
+
 ## [0.7.0] — 2026-08-30
 
 - **Live terminal color sync** (contributed by @neospeed83 in #2). `apply.sh`

@@ -44,59 +44,82 @@ swatch_file() {
   overlay1="$(tget overlay1)"
   local slug="$label"
 
-  local SB=13   # sidebar width
-  local PA=13   # left (active) pane width
-  local PB=13   # right pane width
-
-  # Column helpers bound to this theme's colors.
-  # sidebar row: bg=surface0, fg passed; active sidebar row: bg=active_row_bg
-  sb()  { _cell "$surface0" "$1" "$(_padr "$SB" "$2")"; }
-  sba() { _cell "$active_row_bg" "$1" "$(_padr "$SB" "$2")"; }
-  # active pane row: bg=panel_bg (border accent shown via left bar)
-  pane(){ local bg="$1" fg="$2" w="$3" t="$4"; _cell "$bg" "$fg" "$(_padr "$w" "$t")"; }
-  # selected-text run: bg=selection_bg
-  selfg(){ _cell "$selection_bg" "$1" "$(_padr "$2" "$3")"; }
+  # Layout mirrors a real Herdr workspace: spaces sidebar, tab bar, a focused
+  # pane (accent border) beside a dim inactive pane, then the agent panel.
+  local SB=18 PA=26 PB=16
+  _rep(){ local i s=''; for ((i=0;i<${2:-0};i++)); do s+="$1"; done; printf '%s' "$s"; }
+  # sidebar cell (bg=sidebar_bg); ipane=inactive pane (bg=surface_dim);
+  # bl=accent border vertical.
+  sb(){    _cell "$sidebar_bg"  "$1" "$(_padr "$SB" "$2")"; }
+  ipane(){ _cell "$surface_dim" "$1" "$(_padr "$PB" "$2")"; }
+  bl(){    _cell "$panel_bg" "$accent" '│'; }
+  local btop blankpane
+  btop="$(_cell "$panel_bg" "$accent" "┌$(_rep '─' "$PA")┐")"
+  blankpane="$(_cell "$panel_bg" "$panel_bg" "$(_padr $((PA+2+PB)) '')")"
 
   printf '  %s\n\n' "$slug"
 
-  # ── Tab bar (spans the workspace area) ────────────────────────────
+  # ── Tab bar: active tab (accent bg) + inactive tab + new-tab ──────
   printf '%s' "$(sb "$subtext0" ' spaces')"
-  _cell "$accent"   "$panel_bg" ' WORKSPACE '
-  _cell "$surface1" "$subtext0" ' Files '
+  _cell "$accent"   "$panel_bg" ' 1 · Shell '
+  _cell "$surface1" "$subtext0" ' 2 · agent '
+  _fg   "$overlay0" ' +'
   printf '\n'
 
-  # ── Row 1: sidebar space header + two pane title bars ─────────────
-  printf '%s' "$(sba "$accent" ' ■ AGENT')"
-  _cell "$surface1" "$text"     " ~/proj  pi "
-  _cell "$panel_bg" "$overlay0" " ~/proj     "
+  # ── Border top + active workspace header (highlighted row) ───────
+  _cell "$active_row_bg" "$accent" ' ○ '
+  _cell "$active_row_bg" "$text"   "$(_padr $((SB-3)) 'AGENT')"
+  printf '%s' "$btop"
+  _cell "$surface_dim" "$overlay0" "$(_padr "$PB" ' ~/proj')"
   printf '\n'
 
-  # ── Row 2: cpu/ram + pane bodies (right pane shows a text selection) ──
-  printf '%s' "$(sb "$subtext0" ' cpu·ram 3%')"
-  pane "$panel_bg" "$text"    "$PA" ' fox jumps'
-  selfg "$overlay1" "$((PB-6))" ' idle '
+  # ── Row: workspace name + powerline prompt in focused pane ───────
+  printf '%s' "$(sb "$subtext0" '   main')"
+  bl; _cell "$panel_bg" "$peach" ' ~ '
+  _cell "$panel_bg" "$teal" "$(_padr $((PA-3)) ' ✓ 09:31')"; bl
+  ipane "$overlay0" '187 command'
   printf '\n'
 
-  # ── Row 3: now-playing + accent line in active pane ───────────────
-  printf '%s' "$(sb "$teal" ' ▶ Runaway')"
-  pane "$panel_bg" "$accent"  "$PA" ' accent >'
-  _cell "$surface_dim" "$overlay0" "$(_padr $((PB)) '')"
+  # ── Row: cpu/ram + pane body + selected-text run in inactive pane ─
+  printf '%s' "$(sb "$overlay0" '   cpu 0% · ram 5%')"
+  bl; _cell "$panel_bg" "$text" "$(_padr $((PA-2)) '187 command =')"; bl
+  ipane "$subtext0" '188 descrip'
   printf '\n'
 
-  # ── Row 4: second space (dim) + pane status colors ────────────────
-  printf '%s' "$(sb "$overlay0" ' · LINUX')"
-  pane "$panel_bg" "$green"   "$PA" ' ✓ done'
-  pane "$surface_dim" "$red"      "$PB" ' ✗ err'
+  # ── Row: dim LINUX workspace + code body in both panes ───────────
+  printf '%s' "$(sb "$overlay0" '   - LINUX')"
+  bl; _cell "$panel_bg" "$blue" "$(_padr $((PA-2)) '188 command =')"; bl
+  ipane "$subtext0" '189 descrip'
   printf '\n'
 
-  # ── Divider ───────────────────────────────────────────────────────
-  _cell "$surface_dim" "$overlay0" "$(_padr $((SB+PA+PB)) '')"; printf '\n'
+  # ── Text-selection run inside the focused pane (bg=selection_bg) ──
+  printf '%s' "$(sb "$overlay0" '')"
+  bl; _cell "$selection_bg" "$panel_bg" "$(_padr $((PA-2)) '229 key = prefix+down')"; bl
+  ipane "$overlay0" ''
+  printf '\n'
 
-  # ── Agent pane (bottom): state dots ───────────────────────────────
-  _cell "$panel_bg" "$subtext0" ' AGENTS  '
-  _fg   "$blue"  '● '; _fg "$green" '● '; _fg "$red" '● '; _fg "$overlay0" '● '
-  printf '\n '
-  _fg "$blue" 'claude '; _fg "$green" 'codex '; _fg "$red" 'hermes '; _fg "$overlay0" 'idle'
+  # ── Border bottom + empty terminal filler row ────────────────────
+  printf '%s' "$blankpane"
+  _cell "$surface_dim" "$overlay0" "$(_padr "$PB" '')"
+  printf '\n'
+
+  # ── Sidebar footer: new / menu then agents / priority ────────────
+  local half="$((SB/2))"
+  local pbp; pbp="$(_cell "$surface_dim" "$overlay0" "$(_padr $((PA+2+PB)) '')")"
+  printf '%s%s%s\n' \
+    "$(_cell "$sidebar_bg" "$subtext0" "$(_padr "$half" 'new')")" \
+    "$(_cell "$sidebar_bg" "$overlay0" "$(_padr "$half" 'menu')")" \
+    "$pbp"
+  printf '%s%s%s\n' \
+    "$(_cell "$sidebar_bg" "$subtext0" "$(_padr "$half" 'agents')")" \
+    "$(_cell "$sidebar_bg" "$overlay0" "$(_padr "$half" 'priority')")" \
+    "$pbp"
+
+  # ── Agent panel header (AGENT) + dot + name + command ─────────────
+  _cell "$panel_bg" "$subtext0" ' AGENT '
+  _fg "$green" '● '
+  _cell "$panel_bg" "$text"     'claude '
+  _cell "$panel_bg" "$overlay0" 'herdr-theme-picker previ…'
   printf '\n\n'
 
   # ── ANSI palette strip ────────────────────────────────────────────
