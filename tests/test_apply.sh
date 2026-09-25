@@ -20,4 +20,11 @@ write_custom_block "$cfg" "$tokens"
 n="$(grep -c '^\[theme.custom\]' "$cfg")"
 [ "$n" = 1 ] || { echo "FAIL duplicate block: $n"; fail=1; }
 
+# verify outer_tty awk filter skips both '?' (Linux) and '??' (macOS/BSD)
+mock_ps="? herdr
+?? herdr
+pts/1 herdr"
+detected_tty=$(printf "%s\n" "$mock_ps" | awk '$2=="herdr" && $1!="?" && $1!="??" {print "/dev/"$1; exit}')
+[ "$detected_tty" = "/dev/pts/1" ] || { echo "FAIL outer_tty detection: $detected_tty"; fail=1; }
+
 [ "$fail" = 0 ] && echo "PASS test_apply" || exit 1

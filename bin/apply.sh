@@ -31,7 +31,7 @@ sync_terminal_colors() {
 
   local outer_tty
   outer_tty=$(ps -eo tty,comm 2>/dev/null \
-    | awk '$2=="herdr" && $1!="??" {print "/dev/"$1; exit}')
+    | awk '$2=="herdr" && $1!="?" && $1!="??" {print "/dev/"$1; exit}')
 
   if [ -n "$outer_tty" ] && [ -w "$outer_tty" ]; then
     while IFS='= ' read -r key val; do
