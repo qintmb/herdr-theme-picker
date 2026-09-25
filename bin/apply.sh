@@ -3,9 +3,31 @@ _here="$(dirname "${BASH_SOURCE[0]}")"
 source "$_here/map.sh"
 source "$_here/fetch.sh"
 
+# Return the real file path without relying on GNU-only `readlink -f`.
+# Resolving before the atomic rename keeps a dotfiles symlink in place.
+resolve_config_path() {
+  local path="$1" dir target links=0
+
+  while [ -L "$path" ]; do
+    links=$((links + 1))
+    [ "$links" -le 40 ] || die "too many symlinks: $1"
+
+    dir="$(cd -P "$(dirname "$path")" && pwd)" || return 1
+    target="$(readlink "$path")" || return 1
+    case "$target" in
+      /*) path="$target" ;;
+      *)  path="$dir/$target" ;;
+    esac
+  done
+
+  dir="$(cd -P "$(dirname "$path")" && pwd)" || return 1
+  printf '%s/%s\n' "$dir" "$(basename "$path")"
+}
+
 # Hapus blok [theme.custom] lama (sampai header berikutnya / EOF), lalu append baru.
 write_custom_block() {
   local cfg="$1" tokens="$2"
+  cfg="$(resolve_config_path "$cfg")" || die "cannot resolve config path: $1"
   awk '
     /^\[theme\.custom\]/ { skip=1; next }
     skip && /^\[/ { skip=0 }
