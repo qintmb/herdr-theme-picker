@@ -4,6 +4,21 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com); versions follow semver and
 match the `version` field in `herdr-plugin.toml`.
 
+## [Unreleased]
+
+### Fixed
+
+- **Symlinked `config.toml` preserved** (#3). Applying a theme used to `mv`
+  the temp file over the path, replacing a symlink with a regular file and
+  disconnecting dotfile setups that keep `config.toml` in a repo. The target
+  is now resolved (via `readlink -f`) and the atomic rename lands on the
+  target, so the link survives and receives the `[theme.custom]` block.
+- **Outer PTY detection on Linux** (#5). `sync_terminal_colors` only skipped
+  `??` (macOS/BSD) when filtering `ps -eo tty,comm`, but Linux reports `?`
+  for daemons without a controlling TTY — so it matched the `herdr server`
+  daemon first, resolved to the nonexistent `/dev/?`, and silently emitted no
+  OSC 4/10/11 sequences on any Linux system. The filter now skips both.
+
 ## [0.8.1] — 2026-09-01
 
 - **Precise pane borders.** The preview's box-drawing rules no longer get

@@ -3,21 +3,46 @@ _here="$(dirname "${BASH_SOURCE[0]}")"
 source "$_here/map.sh"
 source "$_here/fetch.sh"
 
+# resolve_symlink <path> -> absolute path of the final target.
+# Portable: BSD/macOS `readlink -f` exits non-zero on a dangling link and
+# `realpath` refuses to resolve one at all, so walk the chain by hand.
+resolve_symlink() {
+  local p="$1" dir link
+  # make absolute so relative link targets resolve against the right dir
+  case "$p" in
+    /*) : ;;
+    *)  p="$PWD/$p" ;;
+  esac
+  while [ -L "$p" ]; do
+    dir="$(cd "$(dirname "$p")" && pwd)"
+    link="$(readlink "$p")"
+    case "$link" in
+      /*) p="$link" ;;
+      *)  p="$dir/$link" ;;
+    esac
+  done
+  dir="$(cd "$(dirname "$p")" 2>/dev/null && pwd)" || dir="$(dirname "$p")"
+  printf '%s/%s\n' "$dir" "$(basename "$p")"
+}
+
 # Hapus blok [theme.custom] lama (sampai header berikutnya / EOF), lalu append baru.
 write_custom_block() {
   local cfg="$1" tokens="$2"
+  # If cfg is a symlink, edit its *target* so dotfile setups that symlink
+  # config.toml into ~/.config keep the link (issue #3).
+  local target; target="$(resolve_symlink "$cfg")"
   awk '
     /^\[theme\.custom\]/ { skip=1; next }
     skip && /^\[/ { skip=0 }
     !skip { print }
-  ' "$cfg" > "$cfg.tmp"
+  ' "$target" > "$target.tmp"
   {
     printf '\n[theme.custom]\n'
     while IFS='=' read -r k v; do
       [ -n "$k" ] && printf '%s = "%s"\n' "$k" "$v"
     done <<< "$tokens"
-  } >> "$cfg.tmp"
-  mv "$cfg.tmp" "$cfg"
+  } >> "$target.tmp"
+  mv "$target.tmp" "$target"
 }
 
 # Emit OSC 4/10/11 sequences to the terminal emulator hosting Herdr so that
@@ -30,8 +55,10 @@ sync_terminal_colors() {
   local palette_file="$1"
 
   local outer_tty
+  # Linux reports ? (single) for daemon procs without a controlling TTY;
+  # macOS/BSD reports ?? (double). Skip both so we hit the herdr *client* PTY.
   outer_tty=$(ps -eo tty,comm 2>/dev/null \
-    | awk '$2=="herdr" && $1!="??" {print "/dev/"$1; exit}')
+    | awk '$2=="herdr" && $1!="?" && $1!="??" {print "/dev/"$1; exit}')
 
   if [ -n "$outer_tty" ] && [ -w "$outer_tty" ]; then
     while IFS='= ' read -r key val; do
