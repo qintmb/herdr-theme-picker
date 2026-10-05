@@ -7,13 +7,15 @@ source "$_here/fetch.sh"
 # Portable: BSD/macOS `readlink -f` exits non-zero on a dangling link and
 # `realpath` refuses to resolve one at all, so walk the chain by hand.
 resolve_symlink() {
-  local p="$1" dir link
+  local p="$1" dir link n=0
   # make absolute so relative link targets resolve against the right dir
   case "$p" in
     /*) : ;;
     *)  p="$PWD/$p" ;;
   esac
   while [ -L "$p" ]; do
+    n=$((n + 1))
+    [ "$n" -le 40 ] || { echo "too many symlinks: $1" >&2; return 1; }
     dir="$(cd "$(dirname "$p")" && pwd)"
     link="$(readlink "$p")"
     case "$link" in
@@ -30,7 +32,8 @@ write_custom_block() {
   local cfg="$1" tokens="$2"
   # If cfg is a symlink, edit its *target* so dotfile setups that symlink
   # config.toml into ~/.config keep the link (issue #3).
-  local target; target="$(resolve_symlink "$cfg")"
+  local target
+  target="$(resolve_symlink "$cfg")" || die "cannot resolve config path: $cfg"
   awk '
     /^\[theme\.custom\]/ { skip=1; next }
     skip && /^\[/ { skip=0 }

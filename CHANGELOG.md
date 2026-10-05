@@ -13,6 +13,7 @@ match the `version` field in `herdr-plugin.toml`.
   disconnecting dotfile setups that keep `config.toml` in a repo. The target
   is now resolved (via `readlink -f`) and the atomic rename lands on the
   target, so the link survives and receives the `[theme.custom]` block.
+  A chain longer than 40 hops is rejected rather than followed forever.
 - **Outer PTY detection on Linux** (#5). `sync_terminal_colors` only skipped
   `??` (macOS/BSD) when filtering `ps -eo tty,comm`, but Linux reports `?`
   for daemons without a controlling TTY — so it matched the `herdr server`

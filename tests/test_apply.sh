@@ -72,4 +72,12 @@ out="$(resolve_symlink "$rs/plain.toml")"
 [ "$out" = "$(cd "$rs" && pwd)/plain.toml" ] \
   || { echo "FAIL resolve_symlink plain: got '$out'"; fail=1; }
 
+# circular symlink: resolver must bail out instead of looping forever
+circ="$(mktemp -d)"
+ln -s "$circ/b.toml" "$circ/a.toml"
+ln -s "$circ/a.toml" "$circ/b.toml"
+if resolve_symlink "$circ/a.toml" >/dev/null 2>&1; then
+  echo "FAIL circular symlink not rejected"; fail=1
+fi
+
 [ "$fail" = 0 ] && echo "PASS test_apply" || exit 1
