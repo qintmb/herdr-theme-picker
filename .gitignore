@@ -3,3 +3,7 @@
 docs/superpowers/
 .superpowers/.codegraph/
 .codegraph/
+/herdr-theme-picker.exe
+*.test
+*.out
+/.build/
