@@ -54,11 +54,19 @@ mapped into `[theme.custom]` in your `config.toml` and reloaded automatically.
 | | |
 |---|---|
 | Herdr | ≥ 0.8.0 |
-| OS | macOS, Linux |
-| Dependencies | `bash`, `curl`, [`fzf`](https://github.com/junegunn/fzf) |
+| OS | macOS, Linux, Windows |
+| Dependencies (macOS, Linux) | `bash`, `curl`, [`fzf`](https://github.com/junegunn/fzf) |
+| Dependencies (Windows) | [Go](https://go.dev/dl/) ≥ 1.24 (to build on install), `fzf` |
 
 `fzf` is usually already present if you use other Herdr plugins (file-picker,
-termscope). If not: `brew install fzf` (macOS) or your distro's package.
+termscope). If not: `brew install fzf` (macOS), your distro's package, or
+`winget install junegunn.fzf` (Windows).
+
+macOS and Linux run the Bash implementation in `bin/`. Windows runs a Go
+port in `go/`, which Herdr builds into `herdr-theme-picker.exe` when the
+plugin is installed. WSL counts as Linux and uses the Bash implementation.
+Windows themes come from the bundled set plus your own imports (clipboard or
+editor); the Go port does not download themes.
 
 ---
 
@@ -287,25 +295,56 @@ current window and all future windows stay consistent.
 
 ## Manifest
 
-`herdr-plugin.toml` declares everything Herdr needs — the pane, the action,
-and the keybind:
+`herdr-plugin.toml` declares everything Herdr needs — the panes, the actions,
+the Windows build step and the keybind. Linux/macOS run the Bash picker in
+`bin/`; Windows runs `herdr-theme-picker.exe`, built from `go/` on install.
+The `open` action runs `./herdr-theme-picker` on every platform: a small Bash
+dispatcher on Linux/macOS, and the `.exe` on Windows. Herdr spawns panes
+without that `.exe` lookup and requires unique pane ids, so Windows has its
+own `picker-windows` pane.
 
 ```toml
 id = "herdr-theme-picker"
 name = "Theme Picker"
 version = "0.1.0"
 min_herdr_version = "0.8.0"
-platforms = ["linux", "macos"]
+description = "Pick any terminalcolors.com theme and apply it to Herdr's UI via [theme.custom]."
+platforms = ["linux", "macos", "windows"]
+
+[[build]]
+platforms = ["windows"]
+command = ["go", "build", "-C", "go", "-trimpath", "-ldflags=-s -w", "-o", "../herdr-theme-picker.exe", "./cmd/herdr-theme-picker"]
 
 [[panes]]
 id = "picker"
+title = "Theme Picker"
+platforms = ["linux", "macos"]
 placement = "popup"
+width = "80%"
+height = "70%"
 command = ["bash", "-c", "exec bash \"$HERDR_PLUGIN_ROOT/bin/picker.sh\""]
+
+[[panes]]
+id = "picker-windows"
+title = "Theme Picker"
+platforms = ["windows"]
+placement = "popup"
+width = "80%"
+height = "70%"
+command = ["./herdr-theme-picker.exe", "picker"]
 
 [[actions]]
 id = "open"
+title = "Theme picker: open"
 contexts = ["workspace"]
-command = ["bash", "-c", "exec \"${HERDR_BIN_PATH:-herdr}\" plugin pane open --plugin herdr-theme-picker --entrypoint picker --placement popup --focus"]
+command = ["./herdr-theme-picker", "open"]
+
+[[actions]]
+id = "sync"
+title = "Theme picker: sync terminal colors"
+contexts = ["global"]
+platforms = ["windows"]
+command = ["./herdr-theme-picker", "sync"]
 
 [[keys.command]]
 key = "prefix+t"
@@ -374,6 +413,12 @@ bash tests/run.sh
 
 Runs assert-based self-checks (no framework): palette mapping, `darken_hex`,
 slug validation, idempotent `[theme.custom]` writing, and swatch rendering.
+
+The Go port has its own suite:
+
+```bash
+cd go && go test ./...
+```
 
 ---
 

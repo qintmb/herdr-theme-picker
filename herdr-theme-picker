@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Linux/macOS entrypoint for the manifest's "./herdr-theme-picker" commands.
+# On Windows the same command runs herdr-theme-picker.exe (built from go/),
+# because Windows resolves an extensionless program path to its .exe first.
+# Sharing the command keeps one `open` action id, so a single
+# `herdr-theme-picker.open` keybind works on every platform.
+set -euo pipefail
+root="$(cd "$(dirname "$0")" && pwd)"
+case "${1:-picker}" in
+  picker) exec bash "$root/bin/picker.sh" ;;
+  open) exec "${HERDR_BIN_PATH:-herdr}" plugin pane open --plugin herdr-theme-picker --entrypoint picker --placement popup --focus ;;
+  *) echo "usage: herdr-theme-picker [picker | open]" >&2; exit 2 ;;
+esac
