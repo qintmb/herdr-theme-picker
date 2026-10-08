@@ -306,7 +306,7 @@ own `picker-windows` pane.
 ```toml
 id = "herdr-theme-picker"
 name = "Theme Picker"
-version = "0.1.0"
+version = "0.9.0"
 min_herdr_version = "0.8.0"
 description = "Pick any terminalcolors.com theme and apply it to Herdr's UI via [theme.custom]."
 platforms = ["linux", "macos", "windows"]
