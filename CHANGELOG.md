@@ -4,6 +4,35 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com); versions follow semver and
 match the `version` field in `herdr-plugin.toml`.
 
+## [Unreleased]
+
+### Added
+
+- **Back to Herdr's own theme.** The picker now opens with an
+  `↩ herdr default` row, which drops the plugin's `[theme.custom]` tokens so
+  Herdr falls back to its built-in `theme.name` again. The label names the
+  theme you land on (`↩ herdr default (built-in: vesper)`), and `catppuccin`
+  is Herdr's own default when the key is unset. It also resets the host
+  terminal's palette with OSC 104/110/111 (the counterpart of the OSC 4/10/11
+  that applying sends), clears the applied marker, restores
+  `~/.config/ghostty/herdr-theme` from the pre-plugin copy the first apply now
+  stashes, and reloads. Enter-only, so Tab still means "add new theme" from any
+  row; `herdr-theme-picker reset` does the same from the command line. The row
+  hands control back to Herdr's own settings rather than changing `theme.name`,
+  and it keeps a hand-written `[theme.custom.light]` / `[theme.custom.dark]`
+  table — those are the user's own config, so the preview warns about them
+  instead. Implemented in both the Bash picker and the Go port.
+
+### Fixed
+
+- **`config.toml` no longer accumulates blank lines.** Every apply appended a
+  blank line in front of its `[theme.custom]` block and never removed the
+  previous run's, so a config cycled through the picker grew an ever-longer gap
+  above the block. The Bash writer now collapses the trailing blank run before
+  appending, matching what the Go port already did.
+
+---
+
 ## [0.9.0] — 2026-10-13
 
 ### Added

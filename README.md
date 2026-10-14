@@ -36,6 +36,8 @@ mapped into `[theme.custom]` in your `config.toml` and reloaded automatically.
 ## Features
 
 - **`prefix+t`** → an fzf popup with a live truecolor swatch preview.
+- **`↩ herdr default`** row → drops the plugin's `[theme.custom]` block and hands
+  the UI back to Herdr's own built-in theme.
 - **112 popular themes bundled offline** (Dracula, Gruvbox, Nord, Tokyo Night,
   Catppuccin, Solarized, One Dark, Everforest, Rosé Pine, Kanagawa, Ayu,
   GitHub, Nightfox, Zenbones, Noctis, …).
@@ -164,6 +166,40 @@ Press **`prefix+t`** (Herdr's default prefix is `cmd+b`, so `cmd+b` then `t`).
 The currently applied theme is marked with `✓` and floated to the top of the
 list; the rest stay browsable so you can switch freely.
 
+Which row is marked `✓` is decided by the presence of the `[theme.custom]`
+block, not by the plugin's state file — a config written before that file
+existed still shows the right row marked.
+
+### Back to Herdr's own theme
+
+The top of the list carries an **`↩ herdr default`** row. Picking it removes the
+plugin's `[theme.custom]` block, so Herdr falls back to its own built-in theme.
+The label spells that theme out — `↩ herdr default (built-in: vesper)` — and
+`catppuccin` is what Herdr itself uses when `theme.name` is unset.
+
+Picking it also:
+
+- resets the host terminal's ANSI palette with **OSC 104/110/111**, the
+  counterpart of the OSC 4/10/11 that applying sends;
+- forgets the applied slug, so no row is marked `✓` any more;
+- restores `~/.config/ghostty/herdr-theme` from the `herdr-theme.pre-herdr`
+  copy the first apply stashed (or parks the stale palette when there is no
+  copy to restore);
+- reloads the server, and backs up `config.toml` first.
+
+It is **Enter-only** — **Tab** keeps meaning "add new theme" from any row. On
+the command line the same action is `herdr-theme-picker reset`.
+
+Two things it deliberately leaves alone:
+
+- **`theme.name`.** The row hands control back to Herdr's own settings rather
+  than forcing a theme on you, so you land on whatever `theme.name` names.
+  Change it in Herdr's Settings to land somewhere else.
+- **A `[theme.custom.light]` / `[theme.custom.dark]` section you wrote
+  yourself.** The plugin never writes one, so it is yours and survives. The
+  preview warns you when it finds one, since it keeps overriding those tokens
+  in that appearance.
+
 ### Add your own theme (from inside the picker)
 
 Two rows are pinned at the bottom of the list:
@@ -240,6 +276,17 @@ prefix+t → picker.sh (fzf)
              │  5. herdr server reload-config
              ▼
           Herdr UI + terminal emulator update simultaneously
+
+prefix+t → pick a "↩ herdr default" row
+             ▼
+          reset.sh
+             │  1. remove [theme.custom] from config.toml (same backup rule)
+             │  2. forget the applied slug
+             │  3. sync_terminal_reset  → OSC 104/110/111 (live ANSI reset)
+             │  4. restore ~/.config/ghostty/herdr-theme from its .pre-herdr copy
+             │  5. herdr server reload-config
+             ▼
+          Herdr falls back to its built-in theme.name
 ```
 
 Palettes are read in **ghostty format** (`background`, `foreground`,
@@ -419,7 +466,8 @@ bash tests/run.sh
 ```
 
 Runs assert-based self-checks (no framework): palette mapping, `darken_hex`,
-slug validation, idempotent `[theme.custom]` writing, and swatch rendering.
+slug validation, idempotent `[theme.custom]` writing, the apply → reset
+round-trip, and swatch rendering.
 
 The Go port has its own suite:
 
@@ -440,7 +488,9 @@ herdr server reload-config
 If you added the `prefix+t` keybind block to your `config.toml` manually (see
 [Install](#install)), remove it there too — Herdr 0.8.2 does not bind keys from
 plugin manifests. Your `[theme.custom]` block and its backups remain in
-`config.toml` until you edit them out.
+`config.toml` until you edit them out — the picker's `↩ herdr default` row (or
+`herdr-theme-picker reset`) does that for you while the plugin is still
+installed.
 
 ---
 

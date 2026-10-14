@@ -52,6 +52,12 @@ func RunPicker() error {
 		if err != nil || cancelled {
 			return err
 		}
+		// The "herdr default" row drops the plugin's colors. Enter only: tab
+		// keeps meaning "add new theme" from any row. Matched before the
+		// prefix strip, because the row is not a slug.
+		if key == "" && strings.HasPrefix(strings.TrimPrefix(selection, "✓ "), DefaultRowMark) {
+			return ResetToBuiltinTheme()
+		}
 		if key == "tab" || (key == "" && (selection == addRow || selection == addClipRow)) {
 			var slug string
 			if key != "tab" && selection == addClipRow {
@@ -119,9 +125,18 @@ func pickerItems() (string, error) {
 	}
 	var rows []string
 	seen := make(map[string]bool)
-	if applied != "" {
-		rows = append(rows, "✓ "+applied)
-		seen[applied] = true
+	// The [theme.custom] block — not the applied marker — decides who wears the
+	// ✓: a block written before the marker existed still means the plugin's
+	// colors are live, and an unmarked applied slug would hide that.
+	row := DefaultRow()
+	if HasCustomBlock(ConfigPath()) {
+		if applied != "" {
+			rows = append(rows, "✓ "+applied)
+			seen[applied] = true
+		}
+		rows = append(rows, row)
+	} else {
+		rows = append(rows, "✓ "+row)
 	}
 	for _, slug := range users {
 		// users came from the index already; only the file needs checking.

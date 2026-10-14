@@ -8,6 +8,8 @@ set -euo pipefail
 root="$(cd "$(dirname "$0")" && pwd)"
 case "${1:-picker}" in
   picker) exec bash "$root/bin/picker.sh" ;;
+  # Matches the "reset" verb of the Go port, which Windows runs instead.
+  reset) exec bash "$root/bin/reset.sh" ;;
   open) exec "${HERDR_BIN_PATH:-herdr}" plugin pane open --plugin herdr-theme-picker --entrypoint picker --placement popup --focus ;;
-  *) echo "usage: herdr-theme-picker [picker | open]" >&2; exit 2 ;;
+  *) echo "usage: herdr-theme-picker [picker | reset | open]" >&2; exit 2 ;;
 esac

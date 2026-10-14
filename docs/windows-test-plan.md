@@ -96,6 +96,9 @@ Get-Process herdr | Select-Object Id, ProcessName, StartTime
 | `$env:EDITOR = 'code --wait'`, then **Tab** | VS Code opens and the picker waits. |
 | **Ctrl-E** on a `★` theme, change one hex, choose **Save & apply** | The override is saved, then applied. |
 | **Ctrl-D** on a `★` theme, answer `y` | The theme is removed. The bundled themes are still there. |
+| Pick **`↩ herdr default (built-in: …)`** | The popup closes; `[theme.custom]` is gone from the config and the rest is untouched. A warning says reload failed (no local server) and suggests `prefix+shift+r`; exit code 0. The label names the `theme.name` you land on. |
+| Pick **`↩ herdr default`** again, right after | `Already on the built-in theme "…" — nothing to undo.`; exit 0; the config is unchanged. |
+| `.\herdr-theme-picker.exe reset` with no custom tokens in the config | Same message, and the config file is not created if it was missing. |
 | Apply an unknown slug: `.\herdr-theme-picker.exe apply nonexistent` | Fails with message containing terminalcolors.com link; exit 1. |
 
 ## 5. Config edge cases
@@ -107,6 +110,8 @@ Back up your config first, or point `$env:HERDR_CONFIG_PATH` at a copy.
 | Config with `auto_switch = true` and `[theme.custom.light]` / `[theme.custom.dark]` | Both layers survive unchanged. |
 | CRLF line endings, as written by Notepad | Still CRLF; no mixed endings. |
 | Applying the same theme twice | The second apply leaves the file byte-identical (`Get-FileHash`). |
+| Config with hand-written `[theme.custom.light]` / `[theme.custom.dark]`, then `reset` | The plugin's base tokens go; both layers survive. The reset preview warns that they keep overriding those appearances. |
+| `reset` on a token-only config | The file returns to exactly what it was before the first apply (`Get-FileHash`). |
 | `$env:XDG_CONFIG_HOME = "$env:TEMP\xdg"` | The config is written under `$env:TEMP\xdg\herdr\config.toml`, matching Herdr. |
 
 ## 6. Optional: Herdr server on Windows

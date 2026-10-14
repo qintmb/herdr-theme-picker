@@ -15,15 +15,103 @@ import (
 	"github.com/pelletier/go-toml/v2/unstable"
 )
 
+// DefaultThemeName is the built-in theme Herdr uses when theme.name is unset or
+// names an unknown theme. Mirrored from Herdr's own fallback so the picker's
+// "herdr default" row can label the theme it lands on.
+const DefaultThemeName = "catppuccin"
+
 // WriteCustomBlock replaces or appends the [theme.custom] section in Herdr's config.toml.
 func WriteCustomBlock(cfgPath string, tokens map[string]string) error {
+	return writeConfig(cfgPath, func(data []byte) ([]byte, error) {
+		return replaceCustomTokens(data, tokens)
+	})
+}
+
+// RemoveCustomBlock drops the plugin's [theme.custom] tokens so Herdr falls back
+// to its built-in theme. A [theme.custom.light] / [theme.custom.dark] table
+// survives: the plugin never writes one, so it belongs to the user, and the
+// picker warns about it before resetting.
+func RemoveCustomBlock(cfgPath string) error {
+	if _, err := os.Stat(cfgPath); errors.Is(err, os.ErrNotExist) {
+		// Nothing to remove, and a reset must not create a config Herdr lacks.
+		return nil
+	}
+	return writeConfig(cfgPath, func(data []byte) ([]byte, error) {
+		return replaceCustomTokens(data, nil)
+	})
+}
+
+// BaseThemeName reports the built-in theme Herdr uses once the plugin's tokens
+// are gone, so a "herdr default" row can name it instead of leaving the user to
+// guess. Unreadable or invalid config falls back to Herdr's own default.
+func BaseThemeName(cfgPath string) string {
+	data, err := os.ReadFile(cfgPath)
+	if err != nil {
+		return DefaultThemeName
+	}
+	var cfg struct {
+		Theme struct {
+			Name string
+		}
+	}
+	if err := toml.Unmarshal(data, &cfg); err != nil || cfg.Theme.Name == "" {
+		return DefaultThemeName
+	}
+	return cfg.Theme.Name
+}
+
+// customTable reads theme.custom, or nil when the config has none. The same
+// parser entry as the writer, so an inline `theme = { custom = … }` counts too.
+func customTable(cfgPath string) map[string]any {
+	data, err := os.ReadFile(cfgPath)
+	if err != nil {
+		return nil
+	}
+	var cfg struct {
+		Theme struct {
+			Custom map[string]any
+		}
+	}
+	if err := toml.Unmarshal(data, &cfg); err != nil {
+		return nil
+	}
+	return cfg.Theme.Custom
+}
+
+// HasCustomBlock reports whether the plugin's tokens are in the config. This —
+// not the applied marker — decides which picker row is marked ✓, because a
+// block written before the marker existed still means custom colors are live.
+func HasCustomBlock(cfgPath string) bool {
+	for key := range customTable(cfgPath) {
+		if isToken(key) {
+			return true
+		}
+	}
+	return false
+}
+
+// HasCustomLayers reports a [theme.custom.light] / [theme.custom.dark] table.
+// Those survive a reset, so the picker warns that the UI stays overridden in
+// that appearance.
+func HasCustomLayers(cfgPath string) bool {
+	for key := range customTable(cfgPath) {
+		if !isToken(key) {
+			return true
+		}
+	}
+	return false
+}
+
+// writeConfig keeps one backup of the original config each day, then replaces
+// it. A config that does not exist yet is created without inventing a backup.
+func writeConfig(cfgPath string, rewrite func([]byte) ([]byte, error)) error {
 	data, err := os.ReadFile(cfgPath)
 	missing := errors.Is(err, os.ErrNotExist)
 	if err != nil && !missing {
 		return err
 	}
 
-	updated, err := replaceCustomTokens(data, tokens)
+	updated, err := rewrite(data)
 	if err != nil {
 		return err
 	}
@@ -158,7 +246,13 @@ func replaceCustomTokens(data []byte, tokens map[string]string) ([]byte, error) 
 			custom[name] = layer
 		}
 		theme := document["theme"].(map[string]any)
-		theme["custom"] = custom
+		// A reset has no tokens to write: drop the inline table rather than
+		// leave `custom = {}` behind.
+		if len(custom) == 0 {
+			delete(theme, "custom")
+		} else {
+			theme["custom"] = custom
+		}
 		encoded, err := toml.Marshal(map[string]any{"theme": theme})
 		if err != nil {
 			return nil, err
@@ -166,10 +260,14 @@ func replaceCustomTokens(data []byte, tokens map[string]string) ([]byte, error) 
 		out.WriteString(nl)
 		out.WriteString(strings.ReplaceAll(string(encoded), "\n", nl))
 	} else {
-		out.WriteString(nl + "[theme.custom]" + nl)
-		for _, k := range TokenOrder {
-			if color, ok := normalized[k]; ok && color != "" {
-				fmt.Fprintf(&out, "%s = %q%s", k, color, nl)
+		// No tokens means a reset: skip the header instead of leaving an empty
+		// [theme.custom] table, which would still read as "the plugin wrote here".
+		if len(normalized) > 0 {
+			out.WriteString(nl + "[theme.custom]" + nl)
+			for _, k := range TokenOrder {
+				if color, ok := normalized[k]; ok && color != "" {
+					fmt.Fprintf(&out, "%s = %q%s", k, color, nl)
+				}
 			}
 		}
 		for _, name := range layerNames {

@@ -5,6 +5,10 @@ source "$_here/fetch.sh"
 source "$_here/map.sh"
 PLUGIN_ROOT="${HERDR_PLUGIN_ROOT:-$(cd "$_here/.." && pwd)}"
 
+# Row that undoes the plugin. It starts with a marker no theme slug can carry,
+# so the picker can match it before the ✓/★/space prefixes are stripped.
+DEFAULT_MARK="↩ herdr default"
+
 # "#rrggbb" -> "r;g;b" (for ANSI truecolor).
 _rgb() { local h="${1#\#}"; printf '%d;%d;%d' "$((16#${h:0:2}))" "$((16#${h:2:2}))" "$((16#${h:4:2}))"; }
 
@@ -169,6 +173,21 @@ if [ "${1:-}" = "--preview" ]; then
   case "$row" in
     "+ Add from clipboard"*) echo "  Reads a ghostty-format palette from your clipboard,"; echo "  asks a name, saves and applies — no editor."; exit 0 ;;
     "+ Add new theme"*) echo "  Opens an editor (nvim if present) to paste a"; echo "  ghostty-format theme; name it, saved and applied."; exit 0 ;;
+    *"$DEFAULT_MARK"*)
+      echo "  Drops the plugin's [theme.custom] block, so Herdr"
+      echo "  goes back to its own built-in theme:"
+      printf '\n      %s\n\n' "$(base_theme "$CONFIG_PATH")"
+      echo "  That name comes from theme.name — change it in"
+      echo "  Herdr's Settings to land somewhere else."
+      # The plugin never writes these, so they are the user's own config and
+      # survive the reset — which means the UI stays overridden in that
+      # appearance. Say so here, while the popup is still readable.
+      if grep -q '^\[theme\.custom\.' "$CONFIG_PATH" 2>/dev/null; then
+        printf '\n'
+        echo "  ⚠ your own [theme.custom.light/dark] section is kept and"
+        echo "    keeps overriding those tokens in that appearance."
+      fi
+      exit 0 ;;
   esac
   row="${row#✓ }"; row="${row#★ }"; row="${row#  }"
   swatch "$row"; exit 0
@@ -207,12 +226,23 @@ main() {
   }
 
   local rest; rest="$(build_display "$applied" "$bundled" "$user_slugs")"
+  # The label carries the built-in theme you land on, so this row never leaves
+  # you guessing which of Herdr's own themes you end up on.
+  local default_row="$DEFAULT_MARK (built-in: $(base_theme "$CONFIG_PATH"))"
+
+  # The [theme.custom] block — not the applied state file — is what overrides
+  # the built-in theme, so it decides who wears the ✓: a block written before
+  # the state file existed still means the plugin's colors are live.
   local display=""
-  if [ -n "$applied" ]; then
-    display="$(printf '✓ %s\n' "$applied")"$'\n'"$rest"
+  if has_custom_block "$CONFIG_PATH"; then
+    if [ -n "$applied" ]; then
+      display="$(printf '✓ %s\n' "$applied")"$'\n'
+    fi
+    display="$display$default_row"
   else
-    display="$rest"
+    display="$(printf '✓ %s\n' "$default_row")"
   fi
+  display="$display"$'\n'"$rest"
   # Add-theme entries pinned at the bottom.
   display="$display"$'\n'"$ADD_ROW"$'\n'"$ADD_CLIP_ROW"
 
@@ -230,6 +260,17 @@ main() {
 
   key="$(printf '%s\n' "$out" | sed -n '1p')"
   sel="$(printf '%s\n' "$out" | sed -n '2p')"
+
+  # "↩ herdr default" → drop the plugin's colors and hand the UI back to Herdr's
+  # own built-in theme. Enter only: tab keeps meaning "add new theme" from any
+  # row. Matched before the prefix strip, because this row is not a slug.
+  if [ -z "$key" ]; then
+    case "$sel" in
+      "$default_row"|"✓ $default_row")
+        bash "$PLUGIN_ROOT/bin/reset.sh"
+        exit 0 ;;
+    esac
+  fi
 
   # Add from clipboard → no editor, straight to name+save.
   if [ "$sel" = "$ADD_CLIP_ROW" ]; then
