@@ -3,30 +3,6 @@ _here="$(dirname "${BASH_SOURCE[0]}")"
 source "$_here/map.sh"
 source "$_here/fetch.sh"
 
-# resolve_symlink <path> -> absolute path of the final target.
-# Portable: BSD/macOS `readlink -f` exits non-zero on a dangling link and
-# `realpath` refuses to resolve one at all, so walk the chain by hand.
-resolve_symlink() {
-  local p="$1" dir link n=0
-  # make absolute so relative link targets resolve against the right dir
-  case "$p" in
-    /*) : ;;
-    *)  p="$PWD/$p" ;;
-  esac
-  while [ -L "$p" ]; do
-    n=$((n + 1))
-    [ "$n" -le 40 ] || { echo "too many symlinks: $1" >&2; return 1; }
-    dir="$(cd "$(dirname "$p")" && pwd)"
-    link="$(readlink "$p")"
-    case "$link" in
-      /*) p="$link" ;;
-      *)  p="$dir/$link" ;;
-    esac
-  done
-  dir="$(cd "$(dirname "$p")" 2>/dev/null && pwd)" || dir="$(dirname "$p")"
-  printf '%s/%s\n' "$dir" "$(basename "$p")"
-}
-
 # Hapus blok [theme.custom] lama (sampai header berikutnya / EOF), lalu append baru.
 write_custom_block() {
   local cfg="$1" tokens="$2"
@@ -34,11 +10,11 @@ write_custom_block() {
   # config.toml into ~/.config keep the link (issue #3).
   local target
   target="$(resolve_symlink "$cfg")" || die "cannot resolve config path: $cfg"
-  awk '
-    /^\[theme\.custom\]/ { skip=1; next }
-    skip && /^\[/ { skip=0 }
-    !skip { print }
-  ' "$target" > "$target.tmp"
+  # Strip the old block and the blank run it sat under in one pass, then append
+  # the new one — everything into one temp file, so the config is only ever
+  # replaced whole. (Appending to a helper's own temp would not work: each
+  # helper consumes its temp with mv.)
+  _strip_custom_block < "$target" | _strip_trailing_blanks > "$target.tmp"
   {
     printf '\n[theme.custom]\n'
     while IFS='=' read -r k v; do
@@ -78,7 +54,12 @@ sync_terminal_colors() {
   fi
 
   # Ghostty: keep the included config fragment up to date for new windows.
+  # Stash the pre-plugin content once so reset.sh can hand the user's own colors
+  # back instead of leaving the last picked palette behind forever.
   local ghostty_theme="$HOME/.config/ghostty/herdr-theme"
+  if [ -f "$ghostty_theme" ] && [ ! -f "$ghostty_theme.pre-herdr" ]; then
+    cp "$ghostty_theme" "$ghostty_theme.pre-herdr"
+  fi
   [ -f "$ghostty_theme" ] && cp "$palette_file" "$ghostty_theme"
 }
 

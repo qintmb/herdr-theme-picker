@@ -19,7 +19,7 @@ func main() {
 
 	switch args[0] {
 	case "help", "--help", "-h":
-		fmt.Println("Usage: herdr-theme-picker [picker | apply <slug> | sync [--client <pid>] | preview <slug> | add [--clipboard] | edit <slug> | delete <slug>]")
+		fmt.Println("Usage: herdr-theme-picker [picker | apply <slug> | reset | sync [--client <pid>] | preview <slug> | add [--clipboard] | edit <slug> | delete <slug>]")
 		fmt.Println("Themes are written to this machine's Herdr config. Clients attached with herdr --remote use their own machine's config: run the picker there.")
 		fmt.Printf("Browse 400+ additional themes at: %s\n", theme.Hyperlink("https://terminalcolors.com", "https://terminalcolors.com"))
 		return
@@ -115,6 +115,10 @@ func main() {
 			fmt.Printf("  %s (Download → Ghostty)\n", theme.Hyperlink("https://terminalcolors.com", "https://terminalcolors.com"))
 			return
 		}
+		if strings.HasPrefix(strings.TrimPrefix(row, "✓ "), theme.DefaultRowMark) {
+			fmt.Print(theme.DefaultRowPreview())
+			return
+		}
 
 		bare := strings.TrimPrefix(row, "✓ ")
 		bare = strings.TrimPrefix(bare, "★ ")
@@ -127,6 +131,16 @@ func main() {
 			os.Exit(1)
 		}
 		if err := theme.ApplyTheme(args[1]); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
+	case "reset":
+		if len(args) != 1 {
+			fmt.Fprintln(os.Stderr, "usage: herdr-theme-picker reset")
+			os.Exit(1)
+		}
+		if err := theme.ResetToBuiltinTheme(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}

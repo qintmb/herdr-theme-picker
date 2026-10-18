@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/pelletier/go-toml/v2"
 	"herdr-theme-picker/internal/terminal"
@@ -22,27 +23,8 @@ func SyncTerminalColors(pal *Palette, palettePath, clientPID string) error {
 		return err
 	}
 	var errs []error
-	// Ghostty only loads this fragment if the user includes it, so an existing
-	// file is the opt-in. Never create it.
-	if home, err := os.UserHomeDir(); err == nil && palettePath != "" {
-		for _, fragment := range []string{
-			filepath.Join(home, ".config", "ghostty", "herdr-theme"),
-			filepath.Join(home, "AppData", "Roaming", "ghostty", "herdr-theme"),
-		} {
-			if _, err := os.Stat(fragment); errors.Is(err, os.ErrNotExist) {
-				continue
-			} else if err != nil {
-				errs = append(errs, fmt.Errorf("Ghostty theme: %w", err))
-				continue
-			}
-			data, err := os.ReadFile(palettePath)
-			if err == nil {
-				err = atomicWriteFile(fragment, data, 0o644)
-			}
-			if err != nil {
-				errs = append(errs, fmt.Errorf("Ghostty theme: %w", err))
-			}
-		}
+	if palettePath != "" {
+		errs = append(errs, syncGhosttyFragments(palettePath)...)
 	}
 	clients, err := terminal.ActiveClients(clientPID)
 	if err != nil {
@@ -59,6 +41,125 @@ func SyncTerminalColors(pal *Palette, palettePath, clientPID string) error {
 	}
 	if synced == 0 && len(errs) == 0 {
 		return terminal.ErrUnavailable
+	}
+	return errors.Join(errs...)
+}
+
+// syncGhosttyFragments refreshes the opt-in fragments of this machine. Ghostty
+// only loads one when the user includes it, so an existing file is the opt-in.
+func syncGhosttyFragments(palettePath string) []error {
+	var errs []error
+	for _, fragment := range ghosttyFragments() {
+		if _, err := os.Stat(fragment); errors.Is(err, os.ErrNotExist) {
+			continue
+		} else if err != nil {
+			errs = append(errs, fmt.Errorf("Ghostty theme: %w", err))
+			continue
+		}
+		// Keep the pre-plugin content once, so a reset can hand the user's own
+		// colors back instead of leaving the last picked palette behind forever.
+		if err := stashGhosttyFragment(fragment); err != nil {
+			errs = append(errs, fmt.Errorf("Ghostty theme: %w", err))
+			continue
+		}
+		data, err := os.ReadFile(palettePath)
+		if err == nil {
+			err = atomicWriteFile(fragment, data, 0o644)
+		}
+		if err != nil {
+			errs = append(errs, fmt.Errorf("Ghostty theme: %w", err))
+		}
+	}
+	return errs
+}
+
+// ghosttyFragments are the include files Herdr may keep in sync, one per
+// platform's Ghostty config location.
+func ghosttyFragments() []string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil
+	}
+	return []string{
+		filepath.Join(home, ".config", "ghostty", "herdr-theme"),
+		filepath.Join(home, "AppData", "Roaming", "ghostty", "herdr-theme"),
+	}
+}
+
+// ghosttyStashSuffix marks the fragment's pre-plugin content, written once
+// before the first apply overwrites it.
+const ghosttyStashSuffix = ".pre-herdr"
+
+func stashGhosttyFragment(fragment string) error {
+	stash := fragment + ghosttyStashSuffix
+	if _, err := os.Stat(stash); err == nil {
+		return nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	data, err := os.ReadFile(fragment)
+	if err != nil {
+		return err
+	}
+	return atomicWriteFile(stash, data, 0o644)
+}
+
+// ResetOSCPayload hands a terminal's colors back to its own configuration:
+// OSC 104 resets the palette, 110 and 111 the foreground and background. The
+// inverse of PaletteOSCPayload.
+const ResetOSCPayload = "\033]104\007\033]110\007\033]111\007"
+
+// ResetTerminalColors undoes SyncTerminalColors on this machine's Herdr
+// clients. Like the sync it is best effort, and it reports
+// terminal.ErrUnavailable when no client was found.
+func ResetTerminalColors(clientPID string) error {
+	clients, err := terminal.ActiveClients(clientPID)
+	if err != nil {
+		return err
+	}
+	synced := 0
+	var errs []error
+	for _, client := range clients {
+		if err := terminal.EmitClient(client, ResetOSCPayload); err == nil {
+			synced++
+		} else if !errors.Is(err, terminal.ErrUnavailable) {
+			errs = append(errs, fmt.Errorf("client %d: %w", client.PID, err))
+		}
+	}
+	if synced == 0 && len(errs) == 0 {
+		return terminal.ErrUnavailable
+	}
+	return errors.Join(errs...)
+}
+
+// RestoreGhosttyFragments puts each stashed fragment back. A fragment with no
+// stash is parked instead: all it can hold is a palette the plugin wrote, and
+// leaving it would keep recoloring every new terminal window.
+func RestoreGhosttyFragments() error {
+	var errs []error
+	for _, fragment := range ghosttyFragments() {
+		stash := fragment + ghosttyStashSuffix
+		if _, err := os.Stat(stash); err == nil {
+			if err := os.Rename(stash, fragment); err != nil {
+				errs = append(errs, fmt.Errorf("Ghostty theme: %w", err))
+			}
+			continue
+		} else if !errors.Is(err, os.ErrNotExist) {
+			errs = append(errs, fmt.Errorf("Ghostty theme: %w", err))
+			continue
+		}
+		if _, err := os.Stat(fragment); errors.Is(err, os.ErrNotExist) {
+			continue
+		} else if err != nil {
+			errs = append(errs, fmt.Errorf("Ghostty theme: %w", err))
+			continue
+		}
+		parked := fmt.Sprintf("%s.removed-%s", fragment, time.Now().Format("20060102150405"))
+		if err := os.Rename(fragment, parked); err != nil {
+			errs = append(errs, fmt.Errorf("Ghostty theme: %w", err))
+			continue
+		}
+		fmt.Fprintf(os.Stderr, "Parked the Ghostty theme fragment (no pre-plugin copy to restore): %s\n", parked)
 	}
 	return errors.Join(errs...)
 }
