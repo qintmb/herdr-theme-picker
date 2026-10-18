@@ -6,6 +6,8 @@ match the `version` field in `herdr-plugin.toml`.
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-10-18
+
 ### Added
 
 - **Back to Herdr's own theme.** The picker now opens with an
